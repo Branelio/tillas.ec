@@ -1,0 +1,26 @@
+{
+  "name": "@tillas/database",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "generate": "prisma generate",
+    "migrate:dev": "prisma migrate dev",
+    "migrate:deploy": "prisma migrate deploy",
+    "seed": "ts-node prisma/seed.ts",
+    "studio": "prisma studio",
+    "reset": "prisma migrate reset --force"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.4.0",
+    "@types/bcryptjs": "^2.4.6",
+    "bcryptjs": "^2.4.3"
+  },
+  "devDependencies": {
+    "prisma": "^6.4.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.6.3"
+  },
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
+  }
+}

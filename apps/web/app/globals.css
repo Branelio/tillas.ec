@@ -1,0 +1,74 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --tillas-bg: #0A0A0A;
+  --tillas-surface: #1C1C1E;
+  --tillas-surface-elevated: #2C2C2E;
+  --tillas-primary: #FF3B30;
+  --tillas-primary-dark: #E02720;
+  --tillas-text: #FFFFFF;
+  --tillas-text-secondary: #A1A1A6;
+  --tillas-text-muted: #71717A;
+  --tillas-border: #3A3A3C;
+  --tillas-success: #22C55E;
+  --tillas-error: #EF4444;
+  --tillas-warning: #F59E0B;
+  --tillas-glass: rgba(28, 28, 30, 0.7);
+  --tillas-glass-border: rgba(255, 255, 255, 0.1);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background-color: var(--tillas-bg);
+  color: var(--tillas-text);
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: "Space Grotesk", "Inter", sans-serif;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+/* Asegurar que el texto siempre sea visible */
+input, textarea, select, button {
+  font-family: inherit;
+}
+
+/* Scrollbar dark */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0a0a0a;
+}
+::-webkit-scrollbar-thumb {
+  background: #2a2a2a;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3a3a3a;
+}
+
+/* Selection */
+::selection {
+  background: rgba(0, 255, 135, 0.3);
+  color: #fafafa;
+}

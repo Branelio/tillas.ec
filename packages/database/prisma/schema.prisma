@@ -1,0 +1,465 @@
+// ==============================================
+// TILLAS.EC — Prisma Schema (Completo)
+// PostgreSQL 16 + pg_trgm para full-text search
+// ==============================================
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextSearch", "fullTextIndex"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== ENUMS ====================
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  UNISEX
+  KIDS
+}
+
+enum ProductStatus {
+  ACTIVE
+  OUT_OF_STOCK
+  COMING_SOON
+  ARCHIVED
+}
+
+enum OrderStatus {
+  PENDING
+  PAYMENT_PROCESSING
+  PAID
+  PREPARING
+  SHIPPED
+  DELIVERED
+  COMPLETED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  APPROVED
+  COMPLETED
+  FAILED
+  EXPIRED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
+enum DropStatus {
+  SCHEDULED
+  LIVE
+  ENDED
+  CANCELLED
+}
+
+enum DropType {
+  NORMAL
+  RAFFLE
+  EARLY_ACCESS
+}
+
+enum LoyaltyTier {
+  BRONCE
+  PLATA
+  ORO
+  ELITE
+}
+
+enum ReturnStatus {
+  REQUESTED
+  APPROVED
+  REJECTED
+  COMPLETED
+}
+
+enum LoyaltyTransactionType {
+  PURCHASE
+  FIRST_PURCHASE
+  BIRTHDAY
+  REVIEW_PHOTO
+  REFERRAL
+  REDEEM
+  ADJUSTMENT
+}
+
+// ==================== USERS ====================
+
+model User {
+  id             String         @id @default(uuid())
+  email          String         @unique
+  passwordHash   String?
+  name           String
+  phone          String?
+  avatar         String?
+  role           Role           @default(USER)
+  favoriteSizes  String[]       // ["US 9", "US 9.5"]
+  googleId       String?        @unique
+  refreshToken   String?
+  fcmToken       String?
+  birthday       DateTime?
+  isVerified     Boolean        @default(false)
+
+  // OTP
+  otpCode        String?
+  otpExpiresAt   DateTime?
+
+  // Referral
+  referralCode   String?        @unique
+  referredBy     String?        // ID del usuario que refirió
+
+  // Relaciones
+  addresses      Address[]
+  orders         Order[]
+  wishlist       WishlistItem[]
+  cartItems      CartItem[]
+  loyaltyPoints  LoyaltyPoints?
+  dropEntries    DropEntry[]
+  reviews        Review[]
+  returns        Return[]
+
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@map("users")
+}
+
+model Address {
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label           String   // "Casa", "Oficina"
+  recipientName   String
+  phone           String
+  city            String   // "Quito", "Guayaquil"
+  sector          String   // "La Mariscal", "Cumbayá"
+  mainStreet      String
+  secondaryStreet String?
+  number          String?
+  reference       String   // "Frente al parque"
+  latitude        Float?
+  longitude       Float?
+  isDefault       Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("addresses")
+}
+
+// ==================== CATALOG ====================
+
+model Brand {
+  id        String    @id @default(uuid())
+  name      String    @unique
+  slug      String    @unique
+  logo      String?
+  products  Product[]
+  createdAt DateTime  @default(now())
+
+  @@map("brands")
+}
+
+model Category {
+  id        String    @id @default(uuid())
+  name      String    @unique
+  slug      String    @unique
+  image     String?
+  products  Product[]
+  createdAt DateTime  @default(now())
+
+  @@map("categories")
+}
+
+model Product {
+  id          String           @id @default(uuid())
+  name        String
+  brandId     String
+  brand       Brand            @relation(fields: [brandId], references: [id])
+  model       String
+  description String
+  slug        String           @unique
+  images      String[]         // URLs de Minio
+  categoryId  String
+  category    Category         @relation(fields: [categoryId], references: [id])
+  gender      Gender           @default(UNISEX)
+  status      ProductStatus    @default(ACTIVE)
+  isFeatured  Boolean          @default(false)
+  releaseDate DateTime?
+  story       String?          // Storytelling à la SNKRS
+  colorway    String?
+  styleCode   String?
+
+  // Relaciones
+  variants    ProductVariant[]
+  wishlist    WishlistItem[]
+  dropProduct DropProduct[]
+  reviews     Review[]
+
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([brandId])
+  @@index([categoryId])
+  @@index([status])
+  @@index([gender])
+  @@map("products")
+}
+
+model ProductVariant {
+  id         String      @id @default(uuid())
+  productId  String
+  product    Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  size       String
+  price      Decimal     @db.Decimal(10, 2)
+  compareAt  Decimal?    @db.Decimal(10, 2)
+  stock      Int         @default(0)
+  sku        String      @unique
+
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+
+  @@unique([productId, size])
+  @@map("product_variants")
+}
+
+// ==================== REVIEWS ====================
+
+model Review {
+  id        String   @id @default(uuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rating    Int      // 1-5
+  comment   String?
+  images    String[] // Fotos del review
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([productId, userId])
+  @@map("reviews")
+}
+
+// ==================== CART ====================
+
+model CartItem {
+  id        String         @id @default(uuid())
+  userId    String
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  variantId String
+  variant   ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  quantity  Int            @default(1)
+  createdAt DateTime       @default(now())
+
+  @@unique([userId, variantId])
+  @@map("cart_items")
+}
+
+model WishlistItem {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, productId])
+  @@map("wishlist_items")
+}
+
+// ==================== ORDERS ====================
+
+model Order {
+  id              String               @id @default(uuid())
+  orderNumber     String               @unique
+  userId          String
+  user            User                 @relation(fields: [userId], references: [id])
+  items           OrderItem[]
+  subtotal        Decimal              @db.Decimal(10, 2)
+  shippingCost    Decimal              @db.Decimal(10, 2)
+  discount        Decimal              @db.Decimal(10, 2) @default(0)
+  loyaltyDiscount Decimal              @db.Decimal(10, 2) @default(0)
+  total           Decimal              @db.Decimal(10, 2)
+  status          OrderStatus          @default(PENDING)
+  shippingAddress Json
+  notes           String?
+  trackingCode    String?
+  estimatedDeliveryAt DateTime?
+  factoryOrderDate    DateTime?
+
+  payment         Payment?
+  statusHistory   OrderStatusHistory[]
+  returns         Return[]
+
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@map("orders")
+}
+
+model OrderItem {
+  id         String         @id @default(uuid())
+  orderId    String
+  order      Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  variantId  String
+  variant    ProductVariant @relation(fields: [variantId], references: [id])
+  productName String
+  productImage String?
+  size       String
+  quantity   Int
+  unitPrice  Decimal        @db.Decimal(10, 2)
+  totalPrice Decimal        @db.Decimal(10, 2)
+
+  @@map("order_items")
+}
+
+model OrderStatusHistory {
+  id        String      @id @default(uuid())
+  orderId   String
+  order     Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  status    OrderStatus
+  note      String?
+  changedBy String?     // userId del admin que cambió
+  createdAt DateTime    @default(now())
+
+  @@map("order_status_history")
+}
+
+// ==================== RETURNS ====================
+
+model Return {
+  id          String       @id @default(uuid())
+  orderId     String
+  order       Order        @relation(fields: [orderId], references: [id])
+  userId      String
+  user        User         @relation(fields: [userId], references: [id])
+  reason      String
+  images      String[]
+  status      ReturnStatus @default(REQUESTED)
+  adminNote   String?
+  refundAmount Decimal?    @db.Decimal(10, 2)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@map("returns")
+}
+
+// ==================== PAYMENTS (Transferencia Bancaria) ====================
+
+model Payment {
+  id              String        @id @default(uuid())
+  orderId         String        @unique
+  order           Order         @relation(fields: [orderId], references: [id])
+  amount          Decimal       @db.Decimal(10, 2)
+  method          String        @default("BANK_TRANSFER")  // BANK_TRANSFER | BANCO_PICHINCHA_API
+  transactionId   String?       // ID de transacción de la pasarela de pagos
+  receiptImage    String?       // URL de la foto del comprobante
+  receiptNotes    String?       // Notas del usuario (ej: "Transferencia desde Banco Guayaquil")
+  status          PaymentStatus @default(PENDING)
+  verifiedBy      String?       // ID del admin que verificó
+  verifiedAt      DateTime?     // Fecha de verificación
+  paidAt          DateTime?
+  adminNote       String?       // Nota del admin al verificar/rechazar
+  refundedAmount  Decimal?      @db.Decimal(10, 2) @default(0)
+  paymentUrl      String?       // URL de pago (para redirección)
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@map("payments")
+}
+
+// ==================== DROPS ====================
+
+model Drop {
+  id          String     @id @default(uuid())
+  title       String
+  slug        String     @unique
+  description String
+  image       String?
+  startsAt    DateTime
+  endsAt      DateTime?
+  status      DropStatus @default(SCHEDULED)
+  type        DropType   @default(NORMAL)
+  isRaffle    Boolean    @default(false)
+  maxEntries  Int?
+  stock       Int?       // Stock total para este drop
+  minTier     LoyaltyTier? // Tier mínimo para early_access
+
+  products    DropProduct[]
+  entries     DropEntry[]
+
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@map("drops")
+}
+
+model DropProduct {
+  id        String  @id @default(uuid())
+  dropId    String
+  drop      Drop    @relation(fields: [dropId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  @@unique([dropId, productId])
+  @@map("drop_products")
+}
+
+model DropEntry {
+  id           String   @id @default(uuid())
+  dropId       String
+  drop         Drop     @relation(fields: [dropId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  selectedSize String
+  isWinner     Boolean  @default(false)
+  notified     Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  @@unique([dropId, userId])
+  @@map("drop_entries")
+}
+
+// ==================== LOYALTY ====================
+
+model LoyaltyPoints {
+  id            String       @id @default(uuid())
+  userId        String       @unique
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  totalPoints   Int          @default(0)
+  currentPoints Int          @default(0)
+  tier          LoyaltyTier  @default(BRONCE)
+  transactions  LoyaltyTransaction[]
+
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@map("loyalty_points")
+}
+
+model LoyaltyTransaction {
+  id          String                @id @default(uuid())
+  loyaltyId   String
+  loyalty     LoyaltyPoints         @relation(fields: [loyaltyId], references: [id], onDelete: Cascade)
+  points      Int
+  type        LoyaltyTransactionType
+  description String
+  orderId     String?
+  createdAt   DateTime              @default(now())
+
+  @@map("loyalty_transactions")
+}

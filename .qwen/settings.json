@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(rmdir *)",
+      "Bash(mkdir *)",
+      "Bash(curl *)",
+      "Bash(npx *)"
+    ]
+  },
+  "$version": 3
+}

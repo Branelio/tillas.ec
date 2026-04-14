@@ -1,0 +1,128 @@
+# ==========================================
+# TILLAS.EC — Docker Compose (Producción)
+# Para despliegue en Oracle Cloud con Dokploy
+# ==========================================
+version: "3.9"
+
+services:
+  # === Backend API ===
+  api:
+    build:
+      context: .
+      dockerfile: packages/api/Dockerfile
+    container_name: tillas-api
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.api.rule=Host(`api.tillas.ec`)"
+      - "traefik.http.routers.api.tls=true"
+      - "traefik.http.routers.api.tls.certresolver=letsencrypt"
+      - "traefik.http.services.api.loadbalancer.server.port=4000"
+    networks:
+      - tillas-network
+
+  # === Web (Next.js) ===
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: tillas-web
+    restart: unless-stopped
+    env_file: .env
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.web.rule=Host(`tillas.ec`)"
+      - "traefik.http.routers.web.tls=true"
+      - "traefik.http.routers.web.tls.certresolver=letsencrypt"
+      - "traefik.http.services.web.loadbalancer.server.port=3000"
+    networks:
+      - tillas-network
+
+  # === Admin Panel ===
+  admin:
+    build:
+      context: .
+      dockerfile: apps/admin/Dockerfile
+    container_name: tillas-admin
+    restart: unless-stopped
+    env_file: .env
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.admin.rule=Host(`admin.tillas.ec`)"
+      - "traefik.http.routers.admin.tls=true"
+      - "traefik.http.routers.admin.tls.certresolver=letsencrypt"
+      - "traefik.http.services.admin.loadbalancer.server.port=3001"
+    networks:
+      - tillas-network
+
+  # === PostgreSQL ===
+  postgres:
+    image: postgres:16-alpine
+    container_name: tillas-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - tillas-network
+
+  # === Redis ===
+  redis:
+    image: redis:7-alpine
+    container_name: tillas-redis
+    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - tillas-network
+
+  # === Minio (S3 self-hosted) ===
+  minio:
+    image: minio/minio:latest
+    container_name: tillas-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
+    volumes:
+      - minio_data:/data
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.media.rule=Host(`media.tillas.ec`)"
+      - "traefik.http.routers.media.tls=true"
+      - "traefik.http.routers.media.tls.certresolver=letsencrypt"
+      - "traefik.http.services.media.loadbalancer.server.port=9000"
+    networks:
+      - tillas-network
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
+
+networks:
+  tillas-network:
+    driver: bridge

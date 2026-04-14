@@ -1,0 +1,253 @@
+# ==========================================
+# TILLAS.EC — Docker Compose (Dokploy Production)
+# Optimizado para despliegue en Oracle Cloud
+# ==========================================
+version: "3.9"
+
+services:
+  # === Backend API ===
+  api:
+    build:
+      context: .
+      dockerfile: packages/api/Dockerfile
+    container_name: tillas-api
+    restart: unless-stopped
+    env_file: .env.production
+    environment:
+      - NODE_ENV=production
+      - DB_HOST=postgres
+      - REDIS_HOST=redis
+      - MINIO_ENDPOINT=minio
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.api.rule=Host(`api.tillas.ec`)"
+      - "traefik.http.routers.api.tls=true"
+      - "traefik.http.routers.api.tls.certresolver=letsencrypt"
+      - "traefik.http.services.api.loadbalancer.server.port=4000"
+      - "traefik.http.routers.api.middlewares=security-headers"
+      - "traefik.http.middlewares.security-headers.headers.customResponseHeaders.X-Content-Type-Options=nosniff"
+      - "traefik.http.middlewares.security-headers.headers.customResponseHeaders.X-Frame-Options=DENY"
+      - "traefik.http.middlewares.security-headers.headers.customResponseHeaders.X-XSS-Protection=1; mode=block"
+    networks:
+      - tillas-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  # === Web (Next.js) ===
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=https://api.tillas.ec
+    container_name: tillas-web
+    restart: unless-stopped
+    env_file: .env.production
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=https://api.tillas.ec
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.web.rule=Host(`tillas.ec`) || Host(`www.tillas.ec`)"
+      - "traefik.http.routers.web.tls=true"
+      - "traefik.http.routers.web.tls.certresolver=letsencrypt"
+      - "traefik.http.services.web.loadbalancer.server.port=3000"
+      - "traefik.http.routers.web.middlewares=security-headers"
+    networks:
+      - tillas-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  # === Admin Panel ===
+  admin:
+    build:
+      context: .
+      dockerfile: apps/admin/Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=https://api.tillas.ec
+    container_name: tillas-admin
+    restart: unless-stopped
+    env_file: .env.production
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=https://api.tillas.ec
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.admin.rule=Host(`admin.tillas.ec`)"
+      - "traefik.http.routers.admin.tls=true"
+      - "traefik.http.routers.admin.tls.certresolver=letsencrypt"
+      - "traefik.http.services.admin.loadbalancer.server.port=3001"
+      - "traefik.http.routers.admin.middlewares=admin-auth,security-headers"
+      # Protección adicional para panel admin - IP whitelist opcional
+      # - "traefik.http.middlewares.admin-auth.ipwhitelist.sourcerange=158.247.126.105"
+    networks:
+      - tillas-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  # === PostgreSQL ===
+  postgres:
+    image: postgres:16-alpine
+    container_name: tillas-db
+    restart: unless-stopped
+    env_file: .env.production
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate=C --lc-ctype=C"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/postgres-backup.sh:/docker-entrypoint-initdb.d/backup-cron.sh
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - tillas-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  # === Redis ===
+  redis:
+    image: redis:7-alpine
+    container_name: tillas-redis
+    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD} --maxmemory 512mb --maxmemory-policy allkeys-lru
+    env_file: .env.production
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - tillas-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  # === Minio (S3 self-hosted) ===
+  minio:
+    image: minio/minio:latest
+    container_name: tillas-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    env_file: .env.production
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
+      MINIO_BROWSER_REDIRECT_URL: https://media.tillas.ec
+    volumes:
+      - minio_data:/data
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.media.rule=Host(`media.tillas.ec`)"
+      - "traefik.http.routers.media.tls=true"
+      - "traefik.http.routers.media.tls.certresolver=letsencrypt"
+      - "traefik.http.services.media.loadbalancer.server.port=9000"
+      - "traefik.http.routers.media-console.rule=Host(`media-console.tillas.ec`)"
+      - "traefik.http.routers.media-console.tls=true"
+      - "traefik.http.routers.media-console.tls.certresolver=letsencrypt"
+      - "traefik.http.services.media-console.loadbalancer.server.port=9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    networks:
+      - tillas-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  # === Backup Automático (Opcional) ===
+  backup:
+    image: postgres:16-alpine
+    container_name: tillas-backup
+    restart: unless-stopped
+    env_file: .env.production
+    environment:
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+    volumes:
+      - backup_data:/backups
+    entrypoint: |
+      sh -c '
+        while true; do
+          pg_dump -h postgres -U $$DB_USER -d $$DB_NAME | gzip > /backups/tillas_$$$(date +%Y%m%d_%H%M%S).sql.gz
+          find /backups -name "*.sql.gz" -mtime +7 -delete
+          sleep 86400
+        done
+      '
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - tillas-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 512M
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  minio_data:
+    driver: local
+  backup_data:
+    driver: local
+
+networks:
+  tillas-network:
+    driver: bridge

@@ -1,0 +1,42 @@
+{
+  "name": "api-tillas",
+  "version": "1.0.0",
+  "description": "Cliente API oficial de TILLAS.EC - Tipos, cliente HTTP y utilidades compartidas",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "lint": "eslint \"src/**/*.ts\"",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "axios": "^1.7.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "eslint": "^8.56.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.6.0"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0",
+    "react-native": "*"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    },
+    "react-native": {
+      "optional": true
+    }
+  }
+}

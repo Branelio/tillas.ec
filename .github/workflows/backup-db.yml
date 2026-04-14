@@ -1,0 +1,72 @@
+name: Backup PostgreSQL — Tillas.ec
+
+on:
+  schedule:
+    # Diario a las 3:00 AM UTC-5 (8:00 AM UTC)
+    - cron: '0 8 * * *'
+  workflow_dispatch:  # Trigger manual
+
+jobs:
+  backup-database:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Instalar cliente PostgreSQL
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Hacer dump de PostgreSQL
+        run: |
+          PGPASSWORD="${{ secrets.DB_PASSWORD }}" pg_dump \
+            -h ${{ secrets.DB_HOST }} \
+            -U ${{ secrets.DB_USER }} \
+            -d ${{ secrets.DB_NAME }} \
+            -F c \
+            --no-owner \
+            -f backup_$(date +%Y%m%d_%H%M%S).dump
+
+      - name: Comprimir backup
+        run: |
+          BACKUP_FILE=$(ls backup_*.dump)
+          gzip "$BACKUP_FILE"
+          echo "BACKUP_NAME=${BACKUP_FILE}.gz" >> $GITHUB_ENV
+
+      - name: Subir a Oracle Object Storage (S3 compatible)
+        uses: jakejarvis/s3-sync-action@v0.5.1
+        with:
+          args: --include "*.gz"
+        env:
+          AWS_S3_BUCKET: ${{ secrets.OCI_BUCKET_NAME }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.OCI_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.OCI_SECRET_KEY }}
+          AWS_S3_ENDPOINT: ${{ secrets.OCI_S3_ENDPOINT }}
+          AWS_REGION: ${{ secrets.OCI_REGION }}
+          SOURCE_DIR: .
+
+      - name: Limpiar backups antiguos (>30 días)
+        run: |
+          pip install awscli
+          aws s3 ls s3://${{ secrets.OCI_BUCKET_NAME }}/ \
+            --endpoint-url ${{ secrets.OCI_S3_ENDPOINT }} \
+            | awk '{print $4}' \
+            | while read obj; do
+                DATE=$(echo "$obj" | grep -oP '\d{8}')
+                if [ -n "$DATE" ]; then
+                  DAYS_OLD=$(( ($(date +%s) - $(date -d "$DATE" +%s)) / 86400 ))
+                  if [ "$DAYS_OLD" -gt 30 ]; then
+                    aws s3 rm "s3://${{ secrets.OCI_BUCKET_NAME }}/$obj" \
+                      --endpoint-url ${{ secrets.OCI_S3_ENDPOINT }}
+                    echo "🗑️ Eliminado backup antiguo: $obj ($DAYS_OLD días)"
+                  fi
+                fi
+              done
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.OCI_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.OCI_SECRET_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.OCI_REGION }}
+
+      - name: Notificar resultado
+        if: failure()
+        run: |
+          echo "❌ BACKUP FALLÓ — $(date)"
+          # Aquí se puede agregar notificación Telegram/Discord

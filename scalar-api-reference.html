@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>TILLAS.EC API - Banco Pichincha</title>
+  <meta charset="utf-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+  />
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+    }
+  </style>
+</head>
+<body>
+  <script
+    id="api-reference"
+    data-url="https://api.tillas.ec/api"
+  ></script>
+  <script>
+    (function () {
+      var params = new URLSearchParams(window.location.search);
+      var customUrl = params.get('url');
+      if (customUrl) {
+        document.getElementById('api-reference').setAttribute('data-url', customUrl);
+      }
+    })();
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
+</body>
+</html>
