@@ -44,8 +44,8 @@ export class AdminService {
       }),
     ]);
 
-    const todayTotal = todaySales._sum.total || 0;
-    const yesterdayTotal = yesterdaySales._sum.total || 0;
+    const todayTotal = Number(todaySales._sum.total ?? 0);
+    const yesterdayTotal = Number(yesterdaySales._sum.total ?? 0);
     const salesTrend = yesterdayTotal > 0
       ? ((todayTotal - yesterdayTotal) / yesterdayTotal) * 100
       : 0;
@@ -56,8 +56,8 @@ export class AdminService {
       totalUsers,
       todaySales: todayTotal,
       salesTrend: Number(salesTrend.toFixed(2)),
-      totalRevenue: totalRevenue._sum.total || 0,
-      monthRevenue: monthRevenue._sum.total || 0,
+      totalRevenue: Number(totalRevenue._sum.total ?? 0),
+      monthRevenue: Number(monthRevenue._sum.total ?? 0),
     };
   }
 
@@ -109,21 +109,42 @@ export class AdminService {
   }
 
   async getBrandSales() {
-    const orderItems = await this.prisma.orderItem.groupBy({
-      by: ['brandName'],
-      _sum: { totalPrice: true },
-      _count: true,
-      having: {
-        brandName: { not: null },
+    const orderItems = await this.prisma.orderItem.findMany({
+      select: {
+        totalPrice: true,
+        variant: {
+          select: {
+            product: {
+              select: {
+                brand: {
+                  select: {
+                    name: true,
+                  },
+                },
+              },
+            },
+          },
+        },
       },
     });
 
-    return orderItems
-      .filter(item => item.brandName)
-      .map(item => ({
-        brand: item.brandName,
-        sales: item._sum.totalPrice || 0,
-        count: item._count,
+    const salesByBrand = new Map<string, { sales: number; count: number }>();
+
+    orderItems.forEach(item => {
+      const brandName = item.variant.product.brand.name;
+      const current = salesByBrand.get(brandName) || { sales: 0, count: 0 };
+
+      salesByBrand.set(brandName, {
+        sales: current.sales + Number(item.totalPrice),
+        count: current.count + 1,
+      });
+    });
+
+    return Array.from(salesByBrand.entries())
+      .map(([brand, stats]) => ({
+        brand,
+        sales: stats.sales,
+        count: stats.count,
       }))
       .sort((a, b) => b.sales - a.sales);
   }
