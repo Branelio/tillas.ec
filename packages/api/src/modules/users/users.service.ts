@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { Role } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
@@ -94,9 +95,12 @@ export class UsersService {
           phone: true,
           role: true,
           isVerified: true,
-          isActive: true,
-          loyaltyTier: true,
           createdAt: true,
+          loyaltyPoints: {
+            select: {
+              tier: true,
+            },
+          },
           _count: { select: { orders: true } },
         },
       }),
@@ -104,7 +108,11 @@ export class UsersService {
     ]);
 
     return {
-      data,
+      data: data.map(user => ({
+        ...user,
+        isActive: user.isVerified,
+        loyaltyTier: user.loyaltyPoints?.tier ?? null,
+      })),
       total,
       page,
       limit,
@@ -136,7 +144,7 @@ export class UsersService {
     }
     return this.prisma.user.update({
       where: { id },
-      data: { role },
+      data: { role: role as Role },
       select: { id: true, email: true, name: true, role: true },
     });
   }
@@ -144,8 +152,8 @@ export class UsersService {
   async updateUserStatus(id: string, isActive: boolean) {
     return this.prisma.user.update({
       where: { id },
-      data: { isActive },
-      select: { id: true, email: true, name: true, isActive: true },
+      data: { isVerified: isActive },
+      select: { id: true, email: true, name: true, isVerified: true },
     });
   }
 }
