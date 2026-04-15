@@ -6,30 +6,34 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-# Instalar dependencias
-COPY apps/admin/package*.json ./
-RUN npm ci
+# Instalar dependencias desde el lockfile raíz
+COPY package.json package-lock.json ./
+COPY packages/api/package.json ./packages/api/
+COPY packages/database/package.json ./packages/database/
+COPY apps/web/package.json ./apps/web/
+COPY apps/admin/package.json ./apps/admin/
+RUN npm ci --workspaces --include-workspace-root
 
 # Copiar código y compilar
-COPY apps/admin ./
+COPY . .
 
 # Build args para variables públicas de Next.js
 ARG NEXT_PUBLIC_API_URL=https://api.tillas.ec
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
-RUN npm run build
+RUN npm --workspace apps/admin run build
 
 # ─── Production ───
 FROM node:20-alpine AS runner
-WORKDIR /app
+WORKDIR /app/apps/admin
 
 ENV NODE_ENV=production
 
 # Copiar standalone server + assets estáticos
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder /app/apps/admin/.next/standalone ./
+COPY --from=builder /app/apps/admin/.next/static ./.next/static
 RUN mkdir -p ./public
-COPY --from=builder /app/public/ ./public/
+COPY --from=builder /app/apps/admin/public/ ./public/
 
 EXPOSE 3001
 ENV PORT=3001
