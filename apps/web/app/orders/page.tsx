@@ -1,6 +1,5 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/stores/auth-store';
 import { ordersApi } from '@/lib/api';
@@ -39,7 +38,6 @@ const statusConfig: Record<string, { label: string; color: string; icon: any }> 
 };
 
 export default function OrdersPage() {
-  const router = useRouter();
   const { isAuthenticated, loadUser } = useAuthStore();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);

@@ -1,10 +1,10 @@
 'use client';
 import { useEffect, useState, useRef } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { paymentsApi, ordersApi } from '@/lib/api';
 import {
-  CheckCircle2, Upload, Copy, Check, Loader2,
-  Clock, Building2, ImageIcon,
+  CheckCircle2, Copy, Check, Loader2,
+  Clock, ImageIcon,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -21,7 +21,6 @@ interface BankInfo {
 
 export default function PaymentPage() {
   const { orderId } = useParams<{ orderId: string }>();
-  const router = useRouter();
 
   const [status, setStatus] = useState<PageStatus>('LOADING');
   const [bankInfo, setBankInfo] = useState<BankInfo | null>(null);

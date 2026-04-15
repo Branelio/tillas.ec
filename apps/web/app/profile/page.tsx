@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/auth-store';
 import { usersApi } from '@/lib/api';
 import {
-  User, Mail, Phone, MapPin, Plus, Pencil, Trash2, Star,
+  User, MapPin, Plus, Pencil,
   Package, LogOut, ChevronRight, Save, X, Shield, Check,
 } from 'lucide-react';
 import Link from 'next/link';

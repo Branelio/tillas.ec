@@ -1,11 +1,11 @@
 'use client';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { dropsApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth-store';
 import ProductCard from '@/components/ProductCard';
-import { Clock, Users, Flame, Trophy, ArrowLeft, Check, AlertCircle } from 'lucide-react';
+import { Clock, Users, Flame, Trophy, ArrowLeft, Check, AlertCircle, Package } from 'lucide-react';
 
 interface DropDetail {
   id: string;
@@ -203,7 +203,7 @@ export default function DropDetailPage() {
             </div>
             {drop.stock && (
               <div className="text-center">
-                <Package2 size={20} className="mx-auto text-tillas-accent mb-2" />
+                <Package size={20} className="mx-auto text-tillas-accent mb-2" />
                 <p className="text-white font-bold text-lg">{drop.stock}</p>
                 <p className="text-gray-500 text-xs">Unidades</p>
               </div>
@@ -282,8 +282,4 @@ export default function DropDetailPage() {
       )}
     </div>
   );
-}
-
-function Package2(props: any) {
-  return <Package {...props} />;
 }
