@@ -12,6 +12,7 @@ COPY packages/api/package.json ./packages/api/
 COPY packages/database/package.json ./packages/database/
 COPY apps/web/package.json ./apps/web/
 COPY apps/admin/package.json ./apps/admin/
+RUN apk add --no-cache python3 make g++
 RUN npm ci --workspaces --include-workspace-root
 
 # Copiar código y compilar

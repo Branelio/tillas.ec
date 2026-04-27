@@ -16,6 +16,7 @@ COPY apps/web/package.json ./apps/web/
 COPY apps/admin/package.json ./apps/admin/
 
 # 2. Instalar dependencias del monorepo usando el lockfile raíz
+RUN apk add --no-cache python3 make g++
 RUN npm ci --workspaces --include-workspace-root --ignore-scripts
 
 # 3. Copiar código fuente
@@ -39,6 +40,7 @@ COPY packages/api/package.json ./packages/api/
 COPY packages/database/package.json ./packages/database/
 COPY apps/web/package.json ./apps/web/
 COPY apps/admin/package.json ./apps/admin/
+RUN apk add --no-cache python3 make g++
 RUN npm ci --omit=dev --workspaces --include-workspace-root --ignore-scripts
 
 # Copiar artefactos del builder
