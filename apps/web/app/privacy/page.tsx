@@ -1,103 +1,70 @@
+import { Lock } from 'lucide-react';
+
 export const metadata = {
   title: 'Política de Privacidad — TILLAS.EC',
-  description: 'Política de privacidad y protección de datos de TILLAS.EC.',
+  description: 'Conoce cómo TILLAS.EC protege y maneja tu información personal.',
 };
 
 export default function PrivacyPage() {
-  const sections = [
-    {
-      title: '1. Responsable del Tratamiento',
-      content: 'TILLAS.EC, con domicilio en Quito, Ecuador, es responsable del tratamiento de los datos personales recopilados a través de la Plataforma.',
-    },
-    {
-      title: '2. Datos que Recopilamos',
-      items: [
-        'Datos de registro: nombre, email, teléfono, contraseña cifrada',
-        'Datos de perfil: avatar, tallas favoritas, fecha de nacimiento',
-        'Datos de compra: direcciones de envío, historial de pedidos, métodos de pago',
-        'Datos de navegación: dirección IP, tipo de dispositivo, páginas visitadas',
-        'Datos de comunicación: mensajes de contacto, reviews de productos',
-      ],
-    },
-    {
-      title: '3. Finalidad del Tratamiento',
-      items: [
-        'Gestionar tu cuenta y procesar tus pedidos',
-        'Realizar envíos y gestionar devoluciones',
-        'Administrar el programa de lealtad y puntos',
-        'Enviar notificaciones sobre pedidos, Drops y promociones',
-        'Mejorar nuestros servicios y personalizar tu experiencia',
-        'Prevenir fraudes y garantizar la seguridad',
-      ],
-    },
-    {
-      title: '4. Base Legal',
-      content: 'El tratamiento de tus datos se basa en: tu consentimiento al registrarte, la ejecución del contrato de compra, obligaciones legales aplicables, y el interés legítimo en mejorar nuestros servicios.',
-    },
-    {
-      title: '5. Compartir Datos',
-      items: [
-        'Banco Pichincha: pagos por transferencia bancaria (no almacenamos datos bancarios)',
-        'Empresas de courier: para realizar envíos',
-        'Firebase (Google): para notificaciones push',
-        'No vendemos ni compartimos tus datos con terceros para fines de marketing',
-      ],
-    },
-    {
-      title: '6. Seguridad',
-      content: 'Implementamos medidas de seguridad técnicas y organizativas para proteger tus datos: cifrado de contraseñas (bcrypt), tokens JWT para autenticación, comunicaciones HTTPS, y almacenamiento seguro en servidores protegidos.',
-    },
-    {
-      title: '7. Retención de Datos',
-      content: 'Conservamos tus datos mientras mantengas tu cuenta activa. Los datos de pedidos se conservan por el tiempo requerido por la legislación fiscal ecuatoriana (7 años). Puedes solicitar la eliminación de tu cuenta y datos en cualquier momento.',
-    },
-    {
-      title: '8. Tus Derechos',
-      items: [
-        'Acceso: solicitar una copia de tus datos personales',
-        'Rectificación: corregir datos inexactos o incompletos',
-        'Eliminación: solicitar la eliminación de tu cuenta y datos',
-        'Oposición: oponerte al tratamiento para marketing directo',
-        'Portabilidad: recibir tus datos en formato estructurado',
-      ],
-    },
-    {
-      title: '9. Cookies',
-      content: 'Utilizamos cookies estrictamente necesarias para el funcionamiento de la Plataforma (sesión, carrito, preferencias). No utilizamos cookies de terceros para publicidad.',
-    },
-    {
-      title: '10. Contacto',
-      content: 'Para ejercer tus derechos o consultas sobre privacidad, escríbenos a privacidad@tillas.ec o a través de nuestro formulario de contacto.',
-    },
-  ];
-
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-12">
-      <h1 className="font-heading text-3xl md:text-4xl font-bold text-white mb-2">Política de Privacidad</h1>
-      <p className="text-gray-500 text-sm mb-10">Última actualización: Marzo 2026</p>
+      <div className="text-center mb-12">
+        <div className="w-16 h-16 rounded-2xl bg-tillas-primary/10 flex items-center justify-center mx-auto mb-4">
+          <Lock size={32} className="text-tillas-primary" />
+        </div>
+        <h1 className="font-heading text-3xl md:text-4xl font-bold text-white">Política de Privacidad</h1>
+        <p className="text-gray-400 mt-2">Última actualización: Abril 2026</p>
+      </div>
 
-      <div className="space-y-6">
-        {sections.map(s => (
-          <div key={s.title} className="bg-tillas-surface rounded-2xl p-6 border border-tillas-border">
-            <h2 className="font-heading text-lg font-bold text-white mb-3">{s.title}</h2>
-            {s.content && <p className="text-gray-400 text-sm leading-relaxed">{s.content}</p>}
-            {s.items && (
-              <ul className="space-y-2 text-sm text-gray-400">
-                {s.items.map((item, i) => (
-                  <li key={i} className="flex items-start gap-2">
-                    <span className="text-tillas-primary mt-0.5">•</span>
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            )}
+      <div className="bg-tillas-surface rounded-2xl p-6 md:p-8 border border-tillas-border space-y-8">
+        {[
+          {
+            title: '1. Información que Recopilamos',
+            content: 'Recopilamos información personal que proporcionas voluntariamente: nombre, email, teléfono, dirección de envío. También recopilamos datos de uso como páginas visitadas, productos vistos y dispositivo utilizado.',
+          },
+          {
+            title: '2. Uso de la Información',
+            content: 'Usamos tu información para: procesar pedidos y pagos, enviarte notificaciones sobre tus compras, mejorar nuestro servicio, personalizar tu experiencia, y comunicarte ofertas (con tu consentimiento).',
+          },
+          {
+            title: '3. Protección de Datos',
+            content: 'Implementamos medidas de seguridad técnicas y organizativas para proteger tu información, incluyendo encriptación SSL/TLS, almacenamiento seguro de contraseñas con hash, y acceso restringido a datos personales.',
+          },
+          {
+            title: '4. Compartir Información',
+            content: 'No vendemos ni compartimos tu información personal con terceros, excepto: servicios de envío (nombre y dirección para la entrega), proveedores de pago (para procesar transacciones), y cuando sea requerido por ley.',
+          },
+          {
+            title: '5. Cookies',
+            content: 'Utilizamos cookies y tecnologías similares para mejorar tu experiencia de navegación, recordar tus preferencias, y analizar el uso de nuestra plataforma. Puedes controlar las cookies a través de la configuración de tu navegador.',
+          },
+          {
+            title: '6. Tus Derechos',
+            content: 'Tienes derecho a: acceder a tu información personal, rectificar datos incorrectos, eliminar tu cuenta y datos, oponerte al procesamiento de datos, y solicitar la portabilidad de tus datos. Para ejercer estos derechos, contáctanos a hola@tillas.ec.',
+          },
+          {
+            title: '7. Retención de Datos',
+            content: 'Conservamos tu información personal mientras mantengas una cuenta activa o según sea necesario para cumplir con obligaciones legales. Los datos de transacciones se conservan por el período requerido por la ley ecuatoriana.',
+          },
+          {
+            title: '8. Menores de Edad',
+            content: 'TILLAS.EC no está dirigido a menores de 18 años. No recopilamos intencionalmente información de menores. Si eres padre o tutor y crees que un menor nos ha proporcionado información, contáctanos.',
+          },
+          {
+            title: '9. Cambios en la Política',
+            content: 'Podemos actualizar esta política periódicamente. Te notificaremos de cambios significativos por email o mediante un aviso en la plataforma. El uso continuado del servicio constituye aceptación de los cambios.',
+          },
+          {
+            title: '10. Contacto',
+            content: 'Para consultas sobre privacidad: hola@tillas.ec • WhatsApp: +593 098 319 9406 • Quito, Ecuador.',
+          },
+        ].map((section) => (
+          <div key={section.title}>
+            <h2 className="font-heading text-lg font-bold text-white mb-2">{section.title}</h2>
+            <p className="text-gray-400 text-sm leading-relaxed">{section.content}</p>
           </div>
         ))}
       </div>
-
-      <p className="text-gray-600 text-xs text-center mt-10">
-        © 2026 TILLAS.EC — Quito, Ecuador. Todos los derechos reservados.
-      </p>
     </div>
   );
 }

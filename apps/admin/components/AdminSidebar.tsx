@@ -2,10 +2,10 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  LayoutDashboard, Package, ShoppingCart, Flame, Users, Menu, X, LogOut, DollarSign, ArrowLeftRight, Settings,
+  LayoutDashboard, Package, ShoppingCart, Flame, Users, Menu, X, LogOut, DollarSign, ArrowLeftRight, Settings, MessageCircle,
 } from 'lucide-react';
-import { useState } from 'react';
-import { adminAuthApi } from '@/lib/api';
+import { useState, useEffect } from 'react';
+import { adminAuthApi, adminTelegramApi } from '@/lib/api';
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -13,6 +13,7 @@ const navItems = [
   { href: '/orders', label: 'Pedidos', icon: ShoppingCart },
   { href: '/payments', label: 'Pagos', icon: DollarSign },
   { href: '/drops', label: 'Drops', icon: Flame },
+  { href: '/telegram', label: 'Telegram', icon: MessageCircle, hasBadge: true },
   { href: '/users', label: 'Usuarios', icon: Users },
   { href: '/returns', label: 'Devoluciones', icon: ArrowLeftRight },
   { href: '/settings', label: 'Configuración', icon: Settings },
@@ -21,6 +22,17 @@ const navItems = [
 export default function AdminSidebar() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [pendingCount, setPendingCount] = useState(0);
+
+  useEffect(() => {
+    if (pathname !== '/login') {
+      adminTelegramApi.getPendingCount().then(({ data }) => {
+        setPendingCount(data?.count || 0);
+      });
+    }
+  }, [pathname]);
+
+  if (pathname === '/login') return null;
 
   const handleLogout = () => {
     adminAuthApi.logout();
@@ -50,6 +62,11 @@ export default function AdminSidebar() {
               }`}>
               <item.icon size={18} />
               {item.label}
+              {item.hasBadge && pendingCount > 0 && (
+                <span className="ml-auto bg-blue-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
+                  {pendingCount}
+                </span>
+              )}
             </Link>
           );
         })}

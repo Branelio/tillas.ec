@@ -29,7 +29,8 @@ export class OrdersService {
     const subtotal = cartItems.reduce(
       (sum, item) => sum + Number(item.variant.price) * item.quantity, 0,
     );
-    const shippingCost = address.city === 'Quito' ? 3.50 : 7.00;
+    const normalizedCity = String(address.city || '').trim().toLowerCase();
+    const shippingCost = normalizedCity === 'quito' ? 3.50 : 7.00;
     const total = subtotal + shippingCost;
 
     // 5. Generar número de orden
@@ -74,10 +75,19 @@ export class OrdersService {
 
       // Reducir stock
       for (const item of cartItems) {
-        await tx.productVariant.update({
-          where: { id: item.variantId },
+        const updateResult = await tx.productVariant.updateMany({
+          where: {
+            id: item.variantId,
+            stock: { gte: item.quantity },
+          },
           data: { stock: { decrement: item.quantity } },
         });
+
+        if (updateResult.count === 0) {
+          throw new BadRequestException(
+            `Stock insuficiente para ${item.variant.product.name} talla ${item.variant.size}. Intenta nuevamente.`,
+          );
+        }
       }
 
       // Limpiar carrito
@@ -127,8 +137,10 @@ export class OrdersService {
   }
 
   // Admin: listar todas las órdenes
-  async getAllOrders(page = 1, limit = 20, status?: string) {
-    const skip = (page - 1) * limit;
+  async getAllOrders(page: any = 1, limit: any = 20, status?: string) {
+    const pageNum = Number(page || 1);
+    const limitNum = Number(limit || 20);
+    const skip = (pageNum - 1) * limitNum;
     const where = status ? { status: status as any } : {};
     const [orders, total] = await Promise.all([
       this.prisma.order.findMany({
@@ -145,10 +157,18 @@ export class OrdersService {
         },
         orderBy: { createdAt: 'desc' },
         skip,
-        take: limit,
+        take: limitNum,
       }),
       this.prisma.order.count({ where }),
     ]);
-    return { data: orders, meta: { total, page, limit, totalPages: Math.ceil(total / limit) } };
+    return {
+      data: orders,
+      meta: {
+        total,
+        page: pageNum,
+        limit: limitNum,
+        totalPages: Math.ceil(total / limitNum),
+      },
+    };
   }
 }

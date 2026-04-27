@@ -1,335 +1,172 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import Link from 'next/link';
 import { useAuthStore } from '@/stores/auth-store';
 import { ordersApi } from '@/lib/api';
-import {
-  ArrowLeft, Clock, Check, Package, Truck, MapPin,
-  CreditCard, Copy, CheckCircle2, Calendar,
-} from 'lucide-react';
+import Link from 'next/link';
+import { Package, ArrowLeft, CheckCircle, CreditCard, MapPin } from 'lucide-react';
 
-interface OrderItem {
-  id: string;
-  productName: string;
-  productImage?: string;
-  size: string;
-  quantity: number;
-  unitPrice: number;
-  totalPrice: number;
-}
-
-interface OrderDetail {
-  id: string;
-  orderNumber: string;
-  status: string;
-  subtotal: number;
-  shippingCost: number;
-  discount: number;
-  loyaltyDiscount: number;
-  total: number;
-  items: OrderItem[];
-  shippingAddress: any;
-  trackingCode?: string;
-  notes?: string;
-  factoryOrderDate?: string;
-  estimatedDeliveryAt?: string;
-  payment?: {
-    id: string;
-    status: string;
-    receiptImage?: string;
-  };
-  statusHistory?: { status: string; createdAt: string; note?: string }[];
-  createdAt: string;
-  updatedAt: string;
-}
-
-const steps = ['PENDING', 'PAID', 'PREPARING', 'SHIPPED', 'DELIVERED'];
-const stepLabels: Record<string, string> = {
-  PENDING: 'Pendiente',
-  PAID: 'Pagado',
-  PREPARING: 'Preparando',
-  SHIPPED: 'Enviado',
-  DELIVERED: 'Entregado',
-};
-const stepIcons: Record<string, any> = {
-  PENDING: Clock,
-  PAID: CreditCard,
-  PREPARING: Package,
-  SHIPPED: Truck,
-  DELIVERED: Check,
+const statusSteps = ['PENDING','PAYMENT_PROCESSING','PAID','PREPARING','SHIPPED','DELIVERED','COMPLETED'];
+const statusLabels: Record<string,string> = {
+  PENDING:'Pendiente', PAYMENT_PROCESSING:'Verificando Pago', PAID:'Pagado',
+  PREPARING:'En Preparación', SHIPPED:'Enviado', DELIVERED:'Entregado',
+  COMPLETED:'Completado', CANCELLED:'Cancelado', REFUNDED:'Reembolsado',
 };
 
 export default function OrderDetailPage() {
   const params = useParams();
-  const orderId = params.id as string;
-  const { isAuthenticated, loadUser } = useAuthStore();
-  const [order, setOrder] = useState<OrderDetail | null>(null);
+  const id = params.id as string;
+  const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [copied, setCopied] = useState(false);
+  const { isAuthenticated, loadUser } = useAuthStore();
 
   useEffect(() => { loadUser(); }, []);
-
   useEffect(() => {
-    if (!isAuthenticated || !orderId) return;
-    ordersApi.getById(orderId)
+    if (!isAuthenticated || !id) return;
+    ordersApi.getById(id)
       .then(({ data }) => setOrder(data))
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [isAuthenticated, orderId]);
-
-  const copyTracking = () => {
-    if (order?.trackingCode) {
-      navigator.clipboard.writeText(order.trackingCode);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
-
-  if (!isAuthenticated) {
-    return (
-      <div className="max-w-3xl mx-auto px-4 py-20 text-center">
-        <h2 className="font-heading text-2xl text-white">Debes iniciar sesión</h2>
-        <Link href="/login" className="inline-block mt-4 px-6 py-3 bg-tillas-primary text-black font-bold rounded-xl">
-          Iniciar Sesión
-        </Link>
-      </div>
-    );
-  }
+  }, [isAuthenticated, id]);
 
   if (loading) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="h-6 bg-tillas-surface rounded w-48 animate-pulse mb-6" />
-        <div className="bg-tillas-surface rounded-2xl h-48 animate-pulse border border-tillas-border mb-6" />
-        <div className="bg-tillas-surface rounded-2xl h-64 animate-pulse border border-tillas-border" />
+        <div className="h-8 shimmer-bg rounded w-48 mb-8" />
+        <div className="bg-tillas-surface rounded-2xl p-8 border border-tillas-border space-y-4">
+          {[1,2,3,4].map(i => <div key={i} className="h-16 shimmer-bg rounded-xl" />)}
+        </div>
       </div>
     );
   }
 
   if (!order) {
     return (
-      <div className="text-center py-32">
-        <p className="text-6xl mb-4">😕</p>
+      <div className="max-w-3xl mx-auto px-4 py-20 text-center">
+        <Package size={48} className="mx-auto text-gray-600 mb-4" />
         <h2 className="font-heading text-2xl text-white">Pedido no encontrado</h2>
-        <Link href="/orders" className="mt-4 text-tillas-primary hover:underline inline-block">← Volver a mis pedidos</Link>
+        <Link href="/orders" className="inline-block mt-4 text-tillas-primary hover:underline">← Volver a mis pedidos</Link>
       </div>
     );
   }
 
-  const currentStepIndex = steps.indexOf(order.status);
-  const isCancelled = ['CANCELLED', 'REFUNDED'].includes(order.status);
+  const currentStep = statusSteps.indexOf(order.status);
+  const isCancelled = order.status === 'CANCELLED' || order.status === 'REFUNDED';
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-6">
-        <Link href="/orders" className="p-2 text-gray-400 hover:text-white transition-colors">
-          <ArrowLeft size={20} />
-        </Link>
+      <Link href="/orders" className="inline-flex items-center gap-2 text-gray-400 hover:text-white text-sm mb-6 transition-colors">
+        <ArrowLeft size={16} /> Mis Pedidos
+      </Link>
+
+      <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="font-heading text-2xl font-bold text-white">Pedido #{order.orderNumber}</h1>
-          <p className="text-gray-500 text-sm">
-            {new Date(order.createdAt).toLocaleDateString('es-EC', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+          <p className="text-gray-500 text-sm mt-1">
+            {new Date(order.createdAt).toLocaleDateString('es-EC', { weekday:'long', day:'numeric', month:'long', year:'numeric' })}
           </p>
         </div>
+        <span className={`px-4 py-2 rounded-xl text-sm font-bold ${isCancelled ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-tillas-primary/10 text-tillas-primary border border-tillas-primary/20'}`}>
+          {statusLabels[order.status] || order.status}
+        </span>
       </div>
 
-      {/* Stepper */}
+      {/* Progress bar */}
       {!isCancelled && (
         <div className="bg-tillas-surface rounded-2xl p-6 border border-tillas-border mb-6">
-          <h3 className="font-heading font-semibold text-white text-sm mb-5">Estado del Pedido</h3>
-          <div className="flex items-center justify-between relative">
-            {/* Progress line */}
-            <div className="absolute top-5 left-0 right-0 h-0.5 bg-tillas-border" />
-            <div className="absolute top-5 left-0 h-0.5 bg-tillas-primary transition-all duration-500"
-              style={{ width: `${Math.max(0, currentStepIndex / (steps.length - 1)) * 100}%` }} />
-
-            {steps.map((step, i) => {
-              const StepIcon = stepIcons[step];
-              const isCompleted = i <= currentStepIndex;
-              const isCurrent = i === currentStepIndex;
+          <div className="flex items-center justify-between mb-4">
+            {statusSteps.slice(0, 6).map((step, i) => {
+              const done = i <= currentStep;
+              const active = i === currentStep;
               return (
-                <div key={step} className="relative flex flex-col items-center z-10">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
-                    isCompleted ? 'bg-tillas-primary text-black' : 'bg-tillas-surfaceElevated text-gray-500 border border-tillas-border'
-                  } ${isCurrent ? 'ring-4 ring-tillas-primary/20' : ''}`}>
-                    {isCompleted && i < currentStepIndex ? <CheckCircle2 size={18} /> : <StepIcon size={18} />}
+                <div key={step} className="flex flex-col items-center flex-1">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${done ? 'bg-tillas-primary text-black' : 'bg-tillas-surfaceElevated text-gray-500 border border-tillas-border'} ${active ? 'ring-2 ring-tillas-primary/30' : ''}`}>
+                    {done ? <CheckCircle size={14} /> : i + 1}
                   </div>
-                  <span className={`text-[10px] mt-2 font-medium ${isCompleted ? 'text-tillas-primary' : 'text-gray-500'}`}>
-                    {stepLabels[step]}
+                  <span className={`text-[10px] mt-2 text-center hidden sm:block ${done ? 'text-tillas-primary' : 'text-gray-600'}`}>
+                    {statusLabels[step]}
                   </span>
                 </div>
               );
             })}
           </div>
-        </div>
-      )}
-
-      {/* Cancelled banner */}
-      {isCancelled && (
-        <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-5 mb-6 text-center">
-          <p className="text-red-400 font-bold text-lg">
-            {order.status === 'CANCELLED' ? '❌ Pedido Cancelado' : '💰 Pedido Reembolsado'}
-          </p>
+          <div className="relative h-1 bg-tillas-surfaceElevated rounded-full">
+            <div className="absolute h-full bg-tillas-primary rounded-full transition-all duration-700" style={{ width: `${Math.max(0, (currentStep / 5) * 100)}%` }} />
+          </div>
         </div>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left: Items + Tracking */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Items */}
+        {/* Items */}
+        <div className="lg:col-span-2 space-y-4">
           <div className="bg-tillas-surface rounded-2xl p-6 border border-tillas-border">
-            <h3 className="font-heading font-semibold text-white mb-4">Productos ({order.items.length})</h3>
-            <div className="space-y-4">
-              {order.items.map(item => (
-                <div key={item.id} className="flex gap-4">
-                  <img src={item.productImage || '/placeholder.jpg'} alt={item.productName}
-                    className="w-20 h-20 rounded-xl object-cover shrink-0" />
+            <h3 className="font-heading font-semibold text-white mb-4">Productos</h3>
+            <div className="space-y-3">
+              {order.items?.map((item: any) => (
+                <div key={item.id} className="flex gap-3 py-3 border-b border-tillas-border last:border-0">
+                  <img src={item.productImage || '/placeholder.jpg'} alt="" className="w-16 h-16 rounded-xl object-cover" />
                   <div className="flex-1 min-w-0">
-                    <h4 className="text-white text-sm font-medium truncate">{item.productName}</h4>
-                    <p className="text-gray-500 text-xs mt-0.5">Talla: {item.size}</p>
-                    <div className="flex items-center justify-between mt-2">
-                      <span className="text-gray-400 text-xs">Cantidad: {item.quantity}</span>
-                      <span className="text-white font-bold text-sm">${Number(item.totalPrice).toFixed(2)}</span>
-                    </div>
+                    <p className="text-white text-sm font-medium truncate">{item.productName}</p>
+                    <p className="text-gray-500 text-xs">Talla: {item.size} • Cant: {item.quantity}</p>
                   </div>
+                  <span className="text-white font-bold text-sm shrink-0">${Number(item.totalPrice).toFixed(2)}</span>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Tracking */}
-          {order.trackingCode && (
-            <div className="bg-tillas-surface rounded-2xl p-6 border border-tillas-border">
-              <h3 className="font-heading font-semibold text-white flex items-center gap-2 mb-3">
-                <Truck size={18} className="text-tillas-primary" /> Tracking
-              </h3>
-              <div className="flex items-center gap-3">
-                <code className="bg-tillas-surfaceElevated px-4 py-2 rounded-lg text-white text-sm font-mono flex-1">
-                  {order.trackingCode}
-                </code>
-                <button onClick={copyTracking}
-                  className={`p-2 rounded-lg border transition-colors ${copied ? 'bg-tillas-primary/20 border-tillas-primary/30 text-tillas-primary' : 'bg-tillas-surfaceElevated border-tillas-border text-gray-400 hover:text-white'}`}>
-                  {copied ? <Check size={16} /> : <Copy size={16} />}
-                </button>
-              </div>
-            </div>
-          )}
-
           {/* Shipping address */}
           {order.shippingAddress && (
             <div className="bg-tillas-surface rounded-2xl p-6 border border-tillas-border">
-              <h3 className="font-heading font-semibold text-white flex items-center gap-2 mb-3">
-                <MapPin size={18} className="text-tillas-primary" /> Dirección de Envío
+              <h3 className="font-heading font-semibold text-white mb-3 flex items-center gap-2">
+                <MapPin size={16} className="text-tillas-primary" /> Dirección de Envío
               </h3>
-              <p className="text-white text-sm">{order.shippingAddress.recipientName}</p>
-              <p className="text-gray-400 text-sm mt-1">
-                {order.shippingAddress.mainStreet}
-                {order.shippingAddress.secondaryStreet && ` y ${order.shippingAddress.secondaryStreet}`}
-              </p>
-              <p className="text-gray-500 text-xs mt-0.5">
-                {order.shippingAddress.sector}, {order.shippingAddress.city}
-              </p>
-              <p className="text-gray-600 text-xs mt-0.5">Ref: {order.shippingAddress.reference}</p>
-              <p className="text-gray-500 text-xs mt-1">{order.shippingAddress.phone}</p>
+              <p className="text-gray-300 text-sm">{order.shippingAddress.recipientName}</p>
+              <p className="text-gray-400 text-sm">{order.shippingAddress.mainStreet}, {order.shippingAddress.sector}</p>
+              <p className="text-gray-500 text-xs">{order.shippingAddress.city}</p>
             </div>
           )}
         </div>
 
-        {/* Right: Summary + Payment */}
-        <div className="space-y-6">
-          {/* Summary */}
+        {/* Summary */}
+        <div>
           <div className="bg-tillas-surface rounded-2xl p-6 border border-tillas-border sticky top-24">
             <h3 className="font-heading font-semibold text-white mb-4">Resumen</h3>
-            <div className="space-y-2.5 text-sm">
+            <div className="space-y-3 text-sm">
               <div className="flex justify-between text-gray-400">
-                <span>Subtotal</span>
-                <span className="text-white">${Number(order.subtotal).toFixed(2)}</span>
+                <span>Subtotal</span><span className="text-white">${Number(order.subtotal).toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-gray-400">
                 <span>Envío</span>
-                <span className={Number(order.shippingCost) === 0 ? 'text-tillas-primary' : 'text-white'}>
+                <span className={Number(order.shippingCost) === 0 ? 'text-tillas-primary font-medium' : 'text-white'}>
                   {Number(order.shippingCost) === 0 ? 'Gratis' : `$${Number(order.shippingCost).toFixed(2)}`}
                 </span>
               </div>
               {Number(order.discount) > 0 && (
                 <div className="flex justify-between text-gray-400">
-                  <span>Descuento</span>
-                  <span className="text-tillas-accent">-${Number(order.discount).toFixed(2)}</span>
+                  <span>Descuento</span><span className="text-tillas-success">-${Number(order.discount).toFixed(2)}</span>
                 </div>
               )}
-              {Number(order.loyaltyDiscount) > 0 && (
-                <div className="flex justify-between text-gray-400">
-                  <span>Puntos canjeados</span>
-                  <span className="text-tillas-accent">-${Number(order.loyaltyDiscount).toFixed(2)}</span>
-                </div>
-              )}
-              <div className="border-t border-tillas-border pt-2.5 flex justify-between">
+              <div className="border-t border-tillas-border pt-3 flex justify-between">
                 <span className="font-semibold text-white">Total</span>
                 <span className="font-bold text-xl text-white">${Number(order.total).toFixed(2)}</span>
               </div>
             </div>
 
-            {/* Payment CTA */}
+            {order.trackingCode && (
+              <div className="mt-4 p-3 bg-tillas-primary/10 border border-tillas-primary/20 rounded-xl">
+                <p className="text-xs text-gray-400">Código de rastreo</p>
+                <p className="text-tillas-primary font-mono font-bold text-sm">{order.trackingCode}</p>
+              </div>
+            )}
+
             {order.status === 'PENDING' && (
               <Link href={`/payment/${order.id}`}
-                className="mt-6 w-full flex items-center justify-center gap-2 py-4 bg-tillas-primary text-black font-bold rounded-xl text-lg hover:bg-tillas-primaryDark transition-colors">
-                <CreditCard size={20} /> Pagar — Transferencia
+                className="w-full flex items-center justify-center gap-2 mt-4 py-3 bg-tillas-primary text-black font-bold rounded-xl hover:bg-tillas-primaryDark transition-colors">
+                <CreditCard size={16} /> Pagar Ahora
               </Link>
             )}
-            {order.status === 'PAYMENT_PROCESSING' && (
-              <div className="mt-6 flex items-center justify-center gap-2 py-4 bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 font-medium rounded-xl text-sm">
-                <Clock size={16} /> Verificando comprobante...
-              </div>
-            )}
           </div>
-
-          {/* Delivery info */}
-          {(order.factoryOrderDate || order.estimatedDeliveryAt) && (
-            <div className="bg-tillas-surface rounded-2xl p-6 border border-tillas-border">
-              <h3 className="font-heading font-semibold text-white text-sm mb-3 flex items-center gap-2">
-                <Calendar size={16} className="text-tillas-primary" /> Entrega
-              </h3>
-              {order.factoryOrderDate && (
-                <div className="text-sm mb-2">
-                  <p className="text-gray-500 text-xs">Pedido a fábrica</p>
-                  <p className="text-white font-medium capitalize">
-                    {new Date(order.factoryOrderDate).toLocaleDateString('es-EC', { weekday: 'long', day: 'numeric', month: 'long' })}
-                  </p>
-                </div>
-              )}
-              {order.estimatedDeliveryAt && (
-                <div className="bg-tillas-primary/10 border border-tillas-primary/20 rounded-xl p-3 mt-2">
-                  <p className="text-gray-400 text-xs">Entrega estimada</p>
-                  <p className="text-tillas-primary font-bold capitalize">
-                    {new Date(order.estimatedDeliveryAt).toLocaleDateString('es-EC', { weekday: 'long', day: 'numeric', month: 'long' })}
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Status history */}
-          {order.statusHistory && order.statusHistory.length > 0 && (
-            <div className="bg-tillas-surface rounded-2xl p-6 border border-tillas-border">
-              <h3 className="font-heading font-semibold text-white text-sm mb-4">Historial</h3>
-              <div className="space-y-3">
-                {order.statusHistory.map((h, i) => (
-                  <div key={i} className="flex gap-3">
-                    <div className="w-2 h-2 rounded-full bg-tillas-primary mt-1.5 shrink-0" />
-                    <div>
-                      <p className="text-white text-xs font-medium">{stepLabels[h.status] || h.status}</p>
-                      {h.note && <p className="text-gray-500 text-xs">{h.note}</p>}
-                      <p className="text-gray-600 text-[10px] mt-0.5">
-                        {new Date(h.createdAt).toLocaleDateString('es-EC', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>

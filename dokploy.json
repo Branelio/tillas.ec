@@ -1,0 +1,251 @@
+{
+  "project": {
+    "name": "tillas-ec",
+    "description": "E-commerce platform for sneakers in Ecuador - Tillas.ec",
+    "version": "1.0.0",
+    "repository": {
+      "type": "git",
+      "branch": "main",
+      "url": ""
+    }
+  },
+  "deployment": {
+    "type": "docker-compose",
+    "composeFile": "docker-compose.dokploy.yml",
+    "environment": "production",
+    "autoDeploy": true,
+    "buildTimeout": 600
+  },
+  "domains": {
+    "web": {
+      "domain": "tillas.ec",
+      "aliases": ["www.tillas.ec"],
+      "port": 3000,
+      "service": "web"
+    },
+    "api": {
+      "domain": "api.tillas.ec",
+      "port": 4000,
+      "service": "api"
+    },
+    "admin": {
+      "domain": "admin.tillas.ec",
+      "port": 3001,
+      "service": "admin"
+    },
+    "media": {
+      "domain": "media.tillas.ec",
+      "port": 9000,
+      "service": "minio"
+    },
+    "mediaConsole": {
+      "domain": "media-console.tillas.ec",
+      "port": 9001,
+      "service": "minio"
+    }
+  },
+  "services": {
+    "api": {
+      "name": "tillas-api",
+      "type": "application",
+      "port": 4000,
+      "healthCheck": {
+        "path": "/health",
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 30
+      },
+      "resources": {
+        "cpu": "1.5",
+        "memory": "2G",
+        "cpuReservation": "0.5",
+        "memoryReservation": "512M"
+      },
+      "restart": "unless-stopped",
+      "dependsOn": ["postgres", "redis", "minio"]
+    },
+    "web": {
+      "name": "tillas-web",
+      "type": "application",
+      "port": 3000,
+      "healthCheck": {
+        "path": "/",
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 20
+      },
+      "resources": {
+        "cpu": "1",
+        "memory": "1G",
+        "cpuReservation": "0.25",
+        "memoryReservation": "256M"
+      },
+      "restart": "unless-stopped"
+    },
+    "admin": {
+      "name": "tillas-admin",
+      "type": "application",
+      "port": 3001,
+      "healthCheck": {
+        "path": "/",
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 20
+      },
+      "resources": {
+        "cpu": "1",
+        "memory": "1G",
+        "cpuReservation": "0.25",
+        "memoryReservation": "256M"
+      },
+      "restart": "unless-stopped"
+    },
+    "postgres": {
+      "name": "tillas-db",
+      "type": "database",
+      "image": "postgres:16-alpine",
+      "port": 5432,
+      "healthCheck": {
+        "command": "pg_isready -U tillas_user -d tillas",
+        "interval": 10,
+        "timeout": 5,
+        "retries": 5,
+        "startPeriod": 10
+      },
+      "resources": {
+        "cpu": "1",
+        "memory": "2G",
+        "cpuReservation": "0.5",
+        "memoryReservation": "512M"
+      },
+      "restart": "unless-stopped",
+      "volumes": ["postgres_data:/var/lib/postgresql/data"],
+      "backup": {
+        "enabled": true,
+        "schedule": "0 2 * * *",
+        "retention": 7
+      }
+    },
+    "redis": {
+      "name": "tillas-redis",
+      "type": "cache",
+      "image": "redis:7-alpine",
+      "port": 6379,
+      "healthCheck": {
+        "command": "redis-cli ping",
+        "interval": 10,
+        "timeout": 5,
+        "retries": 5,
+        "startPeriod": 5
+      },
+      "resources": {
+        "cpu": "0.5",
+        "memory": "1G",
+        "cpuReservation": "0.25",
+        "memoryReservation": "256M"
+      },
+      "restart": "unless-stopped",
+      "volumes": ["redis_data:/data"]
+    },
+    "minio": {
+      "name": "tillas-minio",
+      "type": "storage",
+      "image": "minio/minio:latest",
+      "apiPort": 9000,
+      "consolePort": 9001,
+      "healthCheck": {
+        "command": "curl -f http://localhost:9000/minio/health/live",
+        "interval": 30,
+        "timeout": 10,
+        "retries": 3,
+        "startPeriod": 20
+      },
+      "resources": {
+        "cpu": "0.5",
+        "memory": "1G",
+        "cpuReservation": "0.25",
+        "memoryReservation": "256M"
+      },
+      "restart": "unless-stopped",
+      "volumes": ["minio_data:/data"]
+    }
+  },
+  "ssl": {
+    "enabled": true,
+    "provider": "letsencrypt",
+    "email": "admin@tillas.ec",
+    "certResolver": "letsencrypt"
+  },
+  "networking": {
+    "network": "tillas-network",
+    "driver": "bridge"
+  },
+  "volumes": {
+    "postgres_data": {
+      "driver": "local"
+    },
+    "redis_data": {
+      "driver": "local"
+    },
+    "minio_data": {
+      "driver": "local"
+    },
+    "backup_data": {
+      "driver": "local"
+    }
+  },
+  "monitoring": {
+    "healthCheck": {
+      "enabled": true,
+      "interval": 60
+    },
+    "logging": {
+      "driver": "json-file",
+      "options": {
+        "max-size": "10m",
+        "max-file": "3"
+      }
+    }
+  },
+  "environment": {
+    "required": [
+      "DB_PASSWORD",
+      "REDIS_PASSWORD",
+      "JWT_SECRET",
+      "JWT_REFRESH_SECRET",
+      "MINIO_ACCESS_KEY",
+      "MINIO_SECRET_KEY",
+      "GOOGLE_CLIENT_ID",
+      "GOOGLE_CLIENT_SECRET"
+    ],
+    "optional": [
+      "FIREBASE_PROJECT_ID",
+      "FIREBASE_PRIVATE_KEY",
+      "FIREBASE_CLIENT_EMAIL",
+      "SMTP_USER",
+      "SMTP_PASS"
+    ]
+  },
+  "postDeploy": {
+    "commands": [
+      "docker exec tillas-api npx prisma migrate deploy",
+      "docker exec tillas-api npx prisma db seed"
+    ]
+  },
+  "security": {
+    "headers": {
+      "X-Content-Type-Options": "nosniff",
+      "X-Frame-Options": "DENY",
+      "X-XSS-Protection": "1; mode=block",
+      "Strict-Transport-Security": "max-age=31536000; includeSubDomains"
+    },
+    "rateLimit": {
+      "enabled": true,
+      "ttl": 60,
+      "max": 100
+    }
+  }
+}

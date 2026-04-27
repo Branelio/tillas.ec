@@ -118,7 +118,11 @@ export const paymentsApi = {
   getBankInfo: () => api.get('/payments/bank-info'),
   uploadReceipt: (orderId: string, file: any, notes?: string) => {
     const fd = new FormData();
-    fd.append('receipt', file);
+    fd.append('receipt', {
+      uri: file.uri,
+      name: file.fileName || `receipt-${Date.now()}.jpg`,
+      type: file.mimeType || file.type || 'image/jpeg',
+    } as any);
     fd.append('orderId', orderId);
     if (notes) fd.append('notes', notes);
     return api.post('/payments/upload-receipt', fd, {

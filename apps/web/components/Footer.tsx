@@ -20,7 +20,7 @@ export default function Footer() {
                 className="p-2 bg-tillas-surfaceElevated rounded-lg text-gray-400 hover:text-tillas-primary transition-colors">
                 <Instagram size={18} />
               </a>
-              <a href="https://wa.me/593991234567" target="_blank" rel="noopener"
+              <a href="https://wa.me/5930983199406" target="_blank" rel="noopener"
                 className="p-2 bg-tillas-surfaceElevated rounded-lg text-gray-400 hover:text-tillas-primary transition-colors">
                 <MessageCircle size={18} />
               </a>

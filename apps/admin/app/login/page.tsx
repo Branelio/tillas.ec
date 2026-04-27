@@ -1,13 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { adminAuthApi } from '@/lib/api';
 
 export default function LoginPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -29,6 +27,11 @@ export default function LoginPage() {
       
       // Also store in cookie for middleware access
       document.cookie = `adminToken=${response.data.accessToken}; path=/; max-age=${60 * 60 * 24 * 30}`;
+
+      const callbackUrl =
+        typeof window !== 'undefined'
+          ? new URLSearchParams(window.location.search).get('callbackUrl') || '/dashboard'
+          : '/dashboard';
       
       router.push(callbackUrl);
     } catch (err: any) {
@@ -40,16 +43,16 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-tillas-bg flex items-center justify-center px-4">
+    <div className="min-h-screen bg-admin-bg flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
           <h1 className="font-heading text-4xl font-bold text-white">TILLAS</h1>
-          <p className="text-tillas-text-secondary mt-2">Panel de Administración</p>
+          <p className="text-admin-text-secondary mt-2">Panel de Administración</p>
         </div>
 
         {/* Login Form */}
-        <div className="bg-tillas-surface rounded-2xl p-8 border border-tillas-border">
+        <div className="bg-admin-surface rounded-2xl p-8 border border-admin-border">
           <h2 className="font-heading text-2xl font-bold text-white mb-6">Iniciar Sesión</h2>
 
           {error && (
@@ -68,7 +71,7 @@ export default function LoginPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-tillas-surface-elevated border border-tillas-border rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:border-tillas-primary/50 focus:outline-none"
+                className="w-full bg-admin-elevated border border-admin-border rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:border-admin-primary/50 focus:outline-none"
                 placeholder="admin@tillas.ec"
                 required
                 autoComplete="email"
@@ -84,7 +87,7 @@ export default function LoginPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-tillas-surface-elevated border border-tillas-border rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:border-tillas-primary/50 focus:outline-none"
+                className="w-full bg-admin-elevated border border-admin-border rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:border-admin-primary/50 focus:outline-none"
                 placeholder="••••••••"
                 required
                 autoComplete="current-password"
@@ -94,7 +97,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-4 bg-tillas-primary text-black font-bold rounded-xl hover:bg-tillas-primary/90 transition-colors disabled:opacity-50"
+              className="w-full py-4 bg-admin-primary text-white font-bold rounded-xl hover:bg-admin-primary/90 transition-colors disabled:opacity-50"
             >
               {loading ? 'Ingresando...' : 'Ingresar'}
             </button>
@@ -102,7 +105,7 @@ export default function LoginPage() {
         </div>
 
         {/* Footer */}
-        <p className="text-center text-tillas-text-muted text-sm mt-6">
+        <p className="text-center text-admin-text-muted text-sm mt-6">
           © 2026 TILLAS.EC — Todos los derechos reservados
         </p>
       </div>

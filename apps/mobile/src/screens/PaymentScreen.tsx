@@ -2,14 +2,13 @@
 // Payment Screen — Bank Transfer Only
 // ==============================================
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Alert, ActivityIndicator, TextInput } from 'react-native';
-import { useRoute, useNavigation } from '@react-navigation/native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { paymentsApi, ordersApi } from '../services/api';
-import { StackNavigationProp } from '@react-navigation/stack';
-import { RootStackParamList } from '../navigation/types';
-import { useAuthStore } from '../store/authStore';
-import { CheckCircle, Upload, Copy, Clock, Building2, ArrowLeft } from 'lucide-react-native';
+import * as ImagePicker from 'expo-image-picker';
+import * as Clipboard from 'expo-clipboard';
+import { CheckCircle, Upload, Copy, Clock } from 'lucide-react-native';
 
 type PageStatus = 'LOADING' | 'BANK_INFO' | 'UPLOADING' | 'RECEIPT_SENT' | 'VERIFIED' | 'FAILED';
 
@@ -22,15 +21,9 @@ interface BankInfo {
   instructions: string[];
 }
 
-interface RouteParams {
-  orderId: string;
-}
-
 export default function PaymentScreen() {
-  const route = useRoute();
-  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
-  const { orderId } = route.params as RouteParams;
-  const { user } = useAuthStore();
+  const router = useRouter();
+  const { orderId } = useLocalSearchParams<{ orderId: string }>();
 
   const [status, setStatus] = useState<PageStatus>('LOADING');
   const [bankInfo, setBankInfo] = useState<BankInfo | null>(null);
@@ -42,8 +35,6 @@ export default function PaymentScreen() {
   const [notes, setNotes] = useState('');
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
-  const fileRef = useRef<any>(null);
-
   useEffect(() => {
     if (!orderId) return;
     Promise.all([
@@ -70,16 +61,30 @@ export default function PaymentScreen() {
     });
   }, [orderId]);
 
-  const handleCopyToClipboard = (text: string) => {
-    // Clipboard.setString(text);
+  const handleCopyToClipboard = async (text: string) => {
+    await Clipboard.setStringAsync(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleFileChange = (selectedFile: any) => {
-    if (selectedFile) {
-      setFile(selectedFile);
-      setPreview(selectedFile.uri || '');
+  const handlePickImage = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert('Permiso requerido', 'Necesitamos permiso para acceder a tu galería.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets.length > 0) {
+      const picked = result.assets[0];
+      setFile(picked);
+      setPreview(picked.uri);
+      setError('');
     }
   };
 
@@ -172,7 +177,7 @@ export default function PaymentScreen() {
           </View>
           
           <View style={styles.fileInput}>
-            <TouchableOpacity onPress={() => fileRef.current?.click()}>
+            <TouchableOpacity onPress={handlePickImage}>
               {preview ? (
                 <Image source={{ uri: preview }} style={styles.previewImage} />
               ) : (
@@ -233,7 +238,7 @@ export default function PaymentScreen() {
           </View>
           <TouchableOpacity
             style={styles.ordersButton}
-            onPress={() => navigation.navigate('Orders')}
+            onPress={() => router.push('/orders')}
           >
             <Text style={styles.ordersButtonText}>Ver mis pedidos</Text>
           </TouchableOpacity>
@@ -253,7 +258,7 @@ export default function PaymentScreen() {
           </Text>
           <TouchableOpacity
             style={styles.ordersButton}
-            onPress={() => navigation.navigate('Orders')}
+            onPress={() => router.push('/orders')}
           >
             <Text style={styles.ordersButtonText}>Ver mis pedidos</Text>
           </TouchableOpacity>
@@ -273,7 +278,7 @@ export default function PaymentScreen() {
           </Text>
           <TouchableOpacity
             style={styles.ordersButton}
-            onPress={() => navigation.navigate('Orders')}
+            onPress={() => router.push('/orders')}
           >
             <Text style={styles.ordersButtonText}>Volver a pedidos</Text>
           </TouchableOpacity>

@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
+import Image from 'next/image';
 import { adminReturnsApi } from '@/lib/api';
 import { ArrowLeftRight, Check, X, Eye, RefreshCw } from 'lucide-react';
 
@@ -40,7 +41,7 @@ export default function ReturnsPage() {
   const [selectedReturn, setSelectedReturn] = useState<Return | null>(null);
   const [note, setNote] = useState('');
 
-  const fetchReturns = async () => {
+  const fetchReturns = useCallback(async () => {
     setLoading(true);
     try {
       const { data } = await adminReturnsApi.getAll({ status: filter !== 'all' ? filter : undefined });
@@ -49,11 +50,11 @@ export default function ReturnsPage() {
       console.error(err);
     }
     setLoading(false);
-  };
+  }, [filter]);
 
   useEffect(() => {
     fetchReturns();
-  }, [filter]);
+  }, [fetchReturns]);
 
   const handleUpdateStatus = async (returnId: string, status: string) => {
     setUpdatingId(returnId);
@@ -154,11 +155,13 @@ export default function ReturnsPage() {
                       <td>
                         <div className="flex items-center gap-1">
                           {ret.items?.slice(0, 3).map((item) => (
-                            <img
+                            <Image
                               key={item.id}
                               src={item.productImage || '/placeholder.jpg'}
                               alt={item.productName}
                               title={`${item.productName} - Talla ${item.size}`}
+                              width={32}
+                              height={32}
                               className="w-8 h-8 rounded-md object-cover bg-admin-elevated border border-admin-border"
                             />
                           ))}
@@ -264,9 +267,11 @@ export default function ReturnsPage() {
                       key={item.id}
                       className="flex items-center gap-3 p-2 bg-admin-surface rounded-lg border border-admin-border"
                     >
-                      <img
+                      <Image
                         src={item.productImage || '/placeholder.jpg'}
                         alt={item.productName}
+                        width={48}
+                        height={48}
                         className="w-12 h-12 rounded object-cover"
                       />
                       <div className="flex-1">

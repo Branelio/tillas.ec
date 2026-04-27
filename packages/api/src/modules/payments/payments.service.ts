@@ -43,6 +43,13 @@ export class PaymentsService {
    * El usuario sube la foto del comprobante después de hacer la transferencia
    */
   async uploadReceipt(orderId: string, userId: string, file: Express.Multer.File, notes?: string) {
+    if (!file) {
+      throw new BadRequestException('Debes subir un comprobante de pago');
+    }
+    if (file.mimetype && !file.mimetype.startsWith('image/')) {
+      throw new BadRequestException('El comprobante debe ser una imagen válida');
+    }
+
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
       include: { payment: true, user: { select: { id: true, name: true, email: true } } },
@@ -121,6 +128,12 @@ export class PaymentsService {
       },
     });
     if (!payment) throw new NotFoundException('Pago no encontrado');
+    if (payment.status === 'COMPLETED') {
+      throw new BadRequestException('Este pago ya fue verificado previamente');
+    }
+    if (payment.status !== 'PROCESSING') {
+      throw new BadRequestException('Este pago no está pendiente de verificación');
+    }
 
     if (approved) {
       await this.prisma.$transaction([
@@ -233,7 +246,9 @@ export class PaymentsService {
    * [ADMIN] Obtener todos los pagos
    */
   async getAllPayments(page = 1, limit = 20, status?: string) {
-    const skip = (page - 1) * limit;
+    const pageNum = Math.max(1, Number(page) || 1);
+    const limitNum = Math.max(1, Math.min(100, Number(limit) || 20));
+    const skip = (pageNum - 1) * limitNum;
     const where = status ? { status: status as any } : {};
     const [payments, total] = await Promise.all([
       this.prisma.payment.findMany({
@@ -247,10 +262,18 @@ export class PaymentsService {
         },
         orderBy: { createdAt: 'desc' },
         skip,
-        take: limit,
+        take: limitNum,
       }),
       this.prisma.payment.count({ where }),
     ]);
-    return { data: payments, meta: { total, page, limit, totalPages: Math.ceil(total / limit) } };
+    return {
+      data: payments,
+      meta: {
+        total,
+        page: pageNum,
+        limit: limitNum,
+        totalPages: Math.ceil(total / limitNum),
+      },
+    };
   }
 }

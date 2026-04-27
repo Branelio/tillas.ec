@@ -21,7 +21,7 @@ export default function ContactPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
         {/* WhatsApp */}
-        <a href="https://wa.me/593991234567" target="_blank" rel="noopener noreferrer"
+        <a href="https://wa.me/5930983199406" target="_blank" rel="noopener noreferrer"
           className="bg-tillas-surface rounded-2xl p-6 border border-tillas-border hover:border-tillas-primary/30 transition-all text-center group">
           <MessageCircle size={28} className="mx-auto text-green-400 group-hover:scale-110 transition-transform mb-3" />
           <h3 className="font-heading font-semibold text-white text-sm">WhatsApp</h3>

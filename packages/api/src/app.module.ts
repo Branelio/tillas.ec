@@ -20,6 +20,7 @@ import { MediaModule } from './modules/media/media.module';
 import { ReviewsModule } from './modules/reviews/reviews.module';
 import { ReturnsModule } from './modules/returns/returns.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { TelegramModule } from './modules/telegram/telegram.module';
 import { GatewayModule } from './gateway/gateway.module';
 import { HealthController } from './health.controller';
 
@@ -53,6 +54,7 @@ import { HealthController } from './health.controller';
     ReviewsModule,
     ReturnsModule,
     AdminModule,
+    TelegramModule,
 
     // Real-time (Socket.io)
     GatewayModule,

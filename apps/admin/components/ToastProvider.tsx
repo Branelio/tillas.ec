@@ -63,7 +63,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     addToast('info', title, message);
   }, [addToast]);
 
-  const typeConfig: Record<ToastType, { icon: any; color: string; bg: string }> = {
+  const typeConfig: Record<ToastType, { icon: React.ElementType; color: string; bg: string }> = {
     success: { icon: Check, color: 'text-admin-success', bg: 'bg-admin-success/10' },
     error: { icon: X, color: 'text-admin-error', bg: 'bg-admin-error/10' },
     warning: { icon: AlertTriangle, color: 'text-admin-warning', bg: 'bg-admin-warning/10' },

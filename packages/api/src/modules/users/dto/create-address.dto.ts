@@ -10,7 +10,7 @@ export class CreateAddressDto {
   @IsString()
   recipientName: string;
 
-  @ApiProperty({ example: '+593991234567' })
+  @ApiProperty({ example: '+593983199406' })
   @IsString()
   phone: string;
 

@@ -192,7 +192,7 @@ export default function ProfilePage() {
                 {editing ? (
                   <input type="tel" value={profileForm.phone}
                     onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
-                    placeholder="+593991234567"
+                    placeholder="+5930983199406"
                     className="w-full mt-1 bg-tillas-surfaceElevated border border-tillas-border rounded-xl px-4 py-2.5 text-white placeholder:text-gray-600 focus:outline-none focus:border-tillas-primary transition-colors" />
                 ) : (
                   <p className="text-white mt-1">{user.phone || 'No registrado'}</p>
@@ -294,7 +294,7 @@ export default function ProfilePage() {
                 <label className="text-xs text-gray-500 mb-1 block">Teléfono</label>
                 <input type="tel" value={addressForm.phone}
                   onChange={(e) => setAddressForm({ ...addressForm, phone: e.target.value })}
-                  placeholder="+593991234567"
+                  placeholder="+5930983199406"
                   className="w-full bg-tillas-surfaceElevated border border-tillas-border rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-tillas-primary" />
               </div>
 

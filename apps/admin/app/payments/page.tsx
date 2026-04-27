@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
+import Image from 'next/image';
 import { adminPaymentsApi } from '@/lib/api';
 import { DollarSign, Check, X, Eye, Clock, RefreshCw } from 'lucide-react';
 
@@ -31,7 +32,7 @@ export default function PaymentsPage() {
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [note, setNote] = useState('');
 
-  const fetchPayments = async () => {
+  const fetchPayments = useCallback(async () => {
     setLoading(true);
     try {
       const { data } = filter === 'PROCESSING'
@@ -42,11 +43,11 @@ export default function PaymentsPage() {
       console.error(err);
     }
     setLoading(false);
-  };
+  }, [filter]);
 
   useEffect(() => {
     fetchPayments();
-  }, [filter]);
+  }, [fetchPayments]);
 
   const handleVerify = async (paymentId: string, approved: boolean) => {
     setVerifyingId(paymentId);
@@ -237,9 +238,11 @@ export default function PaymentsPage() {
               {selectedPayment.proofUrl && (
                 <div>
                   <p className="text-gray-500 text-xs mb-2">Comprobante de pago:</p>
-                  <img
+                  <Image
                     src={selectedPayment.proofUrl}
                     alt="Payment proof"
+                    width={500}
+                    height={400}
                     className="w-full rounded-lg border border-admin-border"
                   />
                 </div>

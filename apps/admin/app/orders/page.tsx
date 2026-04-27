@@ -1,6 +1,7 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { adminOrdersApi } from '@/lib/api';
 import { RefreshCw, Eye } from 'lucide-react';
 
@@ -21,7 +22,7 @@ interface Order {
   total: number;
   items: OrderItem[];
   user: { name: string; email: string };
-  shippingAddress?: any;
+  shippingAddress?: Record<string, string>;
   createdAt: string;
   factoryOrderDate?: string;
   estimatedDeliveryAt?: string;
@@ -48,7 +49,7 @@ export default function OrdersPage() {
   const [filter, setFilter] = useState('all');
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
 
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     setLoading(true);
     try {
       const { data } = await adminOrdersApi.getAll({ limit: 100, status: filter !== 'all' ? filter : undefined });
@@ -57,9 +58,9 @@ export default function OrdersPage() {
       console.error(err);
     }
     setLoading(false);
-  };
+  }, [filter]);
 
-  useEffect(() => { fetchOrders(); }, [filter]);
+  useEffect(() => { fetchOrders(); }, [fetchOrders]);
 
   const handleUpdateStatus = async (orderId: string, newStatus: string) => {
     setUpdatingStatus(orderId);
@@ -152,11 +153,13 @@ export default function OrdersPage() {
                       <td>
                         <div className="flex items-center gap-1">
                           {order.items?.slice(0, 3).map((item) => (
-                            <img
+                            <Image
                               key={item.id}
                               src={item.productImage || '/placeholder.jpg'}
                               alt={item.productName}
                               title={`${item.productName} - Talla ${item.size}`}
+                              width={32}
+                              height={32}
                               className="w-8 h-8 rounded-md object-cover bg-admin-elevated border border-admin-border"
                             />
                           ))}

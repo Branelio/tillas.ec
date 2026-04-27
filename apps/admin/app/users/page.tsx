@@ -1,7 +1,7 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { adminUsersApi } from '@/lib/api';
-import { Users as UsersIcon, Search, Shield, UserCheck, UserX, MoreVertical } from 'lucide-react';
+import { Users as UsersIcon, Search, Shield, UserCheck, UserX } from 'lucide-react';
 
 interface User {
   id: string;
@@ -27,10 +27,9 @@ export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
       const { data } = await adminUsersApi.getAll({ limit: 100, search: search || undefined });
@@ -39,11 +38,11 @@ export default function UsersPage() {
       console.error(err);
     }
     setLoading(false);
-  };
+  }, [search]);
 
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [fetchUsers]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();

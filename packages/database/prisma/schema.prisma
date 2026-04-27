@@ -205,6 +205,7 @@ model Product {
   wishlist    WishlistItem[]
   dropProduct DropProduct[]
   reviews     Review[]
+  telegramImports TelegramImport[]
 
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
@@ -462,4 +463,50 @@ model LoyaltyTransaction {
   createdAt   DateTime              @default(now())
 
   @@map("loyalty_transactions")
+}
+
+// ==================== TELEGRAM IMPORTS ====================
+
+enum TelegramImportStatus {
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+  PRODUCT_CREATED
+}
+
+model TelegramImport {
+  id              String               @id @default(uuid())
+  telegramMsgId   Int
+  groupedId       String?              // Para agrupar álbumes de fotos
+  channelId       String
+  channelName     String?
+  caption         String?              @db.Text
+  images          String[]
+
+  // Datos parseados automáticamente del caption
+  parsedPrice     Float?               // Precio mayorista del proveedor
+  parsedSizeMin   Int?                 // Talla mínima (ej: 34)
+  parsedSizeMax   Int?                 // Talla máxima (ej: 44)
+  parsedHorma     String?              // Normal, Ancha, etc.
+  parsedType      String?              // FABRICACIÓN, IMPORTADO
+  isAvailable     Boolean              @default(true)
+
+  // Admin review
+  status          TelegramImportStatus @default(PENDING_REVIEW)
+  sellPrice       Float?               // Precio de venta (lo pone el admin)
+  productName     String?              // Nombre final del producto
+  brandName       String?              // Marca identificada por el admin
+  categoryName    String?              // Categoría asignada
+  productId       String?
+  product         Product?             @relation(fields: [productId], references: [id])
+  reviewedBy      String?
+  reviewedAt      DateTime?
+  rejectedReason  String?
+
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("telegram_imports")
 }

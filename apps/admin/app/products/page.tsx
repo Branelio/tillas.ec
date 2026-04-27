@@ -1,5 +1,6 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
+import Image from 'next/image';
 import { adminProductsApi } from '@/lib/api';
 import { useToast } from '@/components/ToastProvider';
 import { Plus, Search, Pencil, Trash2, X, Package } from 'lucide-react';
@@ -21,7 +22,7 @@ interface Product {
 const emptyProduct = {
   name: '', slug: '', description: '', brandName: '', categoryName: '',
   images: [] as string[], isFeatured: false,
-  variants: [{ size: '', price: 0, stock: 1, sku: '' }],
+  variants: [{ size: '', price: '' as any, stock: '1' as any, sku: '' }],
 };
 
 export default function ProductsPage() {
@@ -32,9 +33,10 @@ export default function ProductsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyProduct);
   const [saving, setSaving] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const toast = useToast();
 
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     try {
       const { data } = await adminProductsApi.getAll({ limit: 100, search: search || undefined });
       setProducts(Array.isArray(data) ? data : data?.data || []);
@@ -42,9 +44,9 @@ export default function ProductsPage() {
       console.error(err);
     }
     setLoading(false);
-  };
+  }, [search]);
 
-  useEffect(() => { fetchProducts(); }, []);
+  useEffect(() => { fetchProducts(); }, [fetchProducts]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,8 +71,8 @@ export default function ProductsPage() {
       images: product.images || [],
       isFeatured: product.isFeatured,
       variants: product.variants.length > 0
-        ? product.variants.map(v => ({ size: v.size, price: v.price, stock: v.stock, sku: v.sku }))
-        : [{ size: '', price: 0, stock: 1, sku: '' }],
+        ? product.variants.map(v => ({ size: v.size, price: v.price.toString() as any, stock: v.stock.toString() as any, sku: v.sku }))
+        : [{ size: '', price: '' as any, stock: '1' as any, sku: '' }],
     });
     setShowModal(true);
   };
@@ -78,11 +80,20 @@ export default function ProductsPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
+      const payload = {
+        ...form,
+        variants: form.variants.map(v => ({
+          ...v,
+          price: Number(v.price || 0),
+          stock: Number(v.stock || 0)
+        }))
+      };
+
       if (editingId) {
-        await adminProductsApi.update(editingId, form);
+        await adminProductsApi.update(editingId, payload);
         toast.success('Producto actualizado', 'Los cambios se guardaron correctamente');
       } else {
-        await adminProductsApi.create(form);
+        await adminProductsApi.create(payload);
         toast.success('Producto creado', 'El producto se agregó al catálogo');
       }
       setShowModal(false);
@@ -107,13 +118,51 @@ export default function ProductsPage() {
     }
   };
 
-  const addVariant = () => {
-    setForm({ ...form, variants: [...form.variants, { size: '', price: 0, stock: 1, sku: '' }] });
+  const toggleSelectAll = () => {
+    if (selectedIds.length === products.length && products.length > 0) setSelectedIds([]);
+    else setSelectedIds(products.map(p => p.id));
   };
 
-  const updateVariant = (index: number, field: string, value: any) => {
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+  };
+
+  const handleBulkDelete = async () => {
+    if (!confirm(`¿Seguro que quieres archivar ${selectedIds.length} productos?`)) return;
+    setLoading(true);
+    try {
+      await Promise.all(selectedIds.map(id => adminProductsApi.delete(id)));
+      toast.success('Productos archivados masivamente');
+      setSelectedIds([]);
+      fetchProducts();
+    } catch (err) {
+      console.error(err);
+      toast.error('Error', 'No todos los productos pudieron ser archivados');
+      setLoading(false);
+    }
+  };
+
+  const handleBulkFeature = async (feature: boolean) => {
+    setLoading(true);
+    try {
+      await Promise.all(selectedIds.map(id => adminProductsApi.update(id, { isFeatured: feature })));
+      toast.success(feature ? 'Productos destacados' : 'Productos quitados de destacados');
+      setSelectedIds([]);
+      fetchProducts();
+    } catch (err) {
+      console.error(err);
+      toast.error('Error', 'Hubo un error al actualizar algunos productos');
+      setLoading(false);
+    }
+  };
+
+  const addVariant = () => {
+    setForm({ ...form, variants: [...form.variants, { size: '', price: '' as any, stock: '1' as any, sku: '' }] });
+  };
+
+  const updateVariant = (index: number, field: keyof typeof form.variants[0], value: string | number) => {
     const variants = [...form.variants];
-    (variants[index] as any)[field] = value;
+    variants[index] = { ...variants[index], [field]: value };
     setForm({ ...form, variants });
   };
 
@@ -144,12 +193,37 @@ export default function ProductsPage() {
         </div>
       </form>
 
+      {/* Barra de Acciones Masivas */}
+      {selectedIds.length > 0 && (
+        <div className="bg-admin-elevated border border-admin-primary/50 rounded-xl p-3 mb-4 flex flex-col sm:flex-row items-center justify-between gap-3 animate-fade-in">
+          <span className="text-white text-sm font-medium ml-2">
+            {selectedIds.length} producto(s) seleccionado(s)
+          </span>
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-between">
+            <button onClick={() => handleBulkFeature(true)} className="px-3 py-1.5 bg-[#4F46E5]/20 text-[#818CF8] hover:bg-[#4F46E5]/30 rounded-lg text-sm font-medium transition-colors border border-transparent hover:border-[#4F46E5]/50">
+              🌟 Destacar
+            </button>
+            <button onClick={() => handleBulkFeature(false)} className="px-3 py-1.5 bg-gray-500/20 text-gray-300 hover:bg-gray-500/30 rounded-lg text-sm font-medium transition-colors border border-transparent hover:border-gray-500/50">
+              👁️ Quitar Destacado
+            </button>
+            <button onClick={handleBulkDelete} className="px-3 py-1.5 bg-admin-error/20 text-admin-error hover:bg-admin-error/30 rounded-lg text-sm font-medium transition-colors border border-transparent hover:border-admin-error/50">
+              🗑️ Archivar
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Table */}
       <div className="bg-admin-card rounded-2xl border border-admin-border overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full admin-table">
             <thead>
               <tr>
+                <th className="w-10">
+                  <input type="checkbox" className="accent-admin-primary w-4 h-4 rounded border-gray-600"
+                    checked={products.length > 0 && selectedIds.length === products.length}
+                    onChange={toggleSelectAll} />
+                </th>
                 <th>Producto</th>
                 <th>Marca</th>
                 <th>Precio</th>
@@ -168,16 +242,21 @@ export default function ProductsPage() {
                 </td></tr>
               ) : (
                 products.map(p => {
-                  const minPrice = Math.min(...p.variants.map(v => v.price));
-                  const totalStock = p.variants.reduce((s, v) => s + v.stock, 0);
+                  const minPrice = p.variants?.length > 0 ? Math.min(...p.variants.map(v => v.price)) : 0;
+                  const totalStock = p.variants?.length > 0 ? p.variants.reduce((s, v) => s + v.stock, 0) : 0;
                   return (
-                    <tr key={p.id}>
+                    <tr key={p.id} className={selectedIds.includes(p.id) ? 'bg-admin-elevated/50' : ''}>
+                      <td>
+                        <input type="checkbox" className="accent-admin-primary w-4 h-4 rounded border-gray-600"
+                          checked={selectedIds.includes(p.id)}
+                          onChange={() => toggleSelect(p.id)} />
+                      </td>
                       <td>
                         <div className="flex items-center gap-3">
-                          <img src={p.images?.[0] || '/placeholder.jpg'} alt="" className="w-10 h-10 rounded-lg object-cover" />
+                          <Image src={p.images?.[0] || '/placeholder.jpg'} alt="" width={40} height={40} className="w-10 h-10 rounded-lg object-cover" />
                           <div>
                             <p className="text-white text-sm font-medium truncate max-w-[200px]">{p.name}</p>
-                            <p className="text-gray-500 text-xs">{p.slug}</p>
+                            <p className="text-gray-500 text-xs truncate max-w-[200px]">{p.slug}</p>
                           </div>
                         </div>
                       </td>
@@ -287,9 +366,9 @@ export default function ProductsPage() {
                     <div key={i} className="grid grid-cols-5 gap-2 items-center">
                       <input type="text" value={v.size} onChange={e => updateVariant(i, 'size', e.target.value)}
                         placeholder="US 10" className="bg-admin-card border border-admin-border rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-admin-primary" />
-                      <input type="number" value={v.price} onChange={e => updateVariant(i, 'price', +e.target.value)}
+                      <input type="text" value={v.price} onChange={e => updateVariant(i, 'price', e.target.value)}
                         placeholder="Precio" className="bg-admin-card border border-admin-border rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-admin-primary" />
-                      <input type="number" value={v.stock} onChange={e => updateVariant(i, 'stock', +e.target.value)}
+                      <input type="text" value={v.stock} onChange={e => updateVariant(i, 'stock', e.target.value)}
                         placeholder="Stock" className="bg-admin-card border border-admin-border rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-admin-primary" />
                       <input type="text" value={v.sku} onChange={e => updateVariant(i, 'sku', e.target.value)}
                         placeholder="SKU" className="bg-admin-card border border-admin-border rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-admin-primary" />

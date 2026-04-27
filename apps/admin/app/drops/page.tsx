@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { adminDropsApi, adminProductsApi } from '@/lib/api';
-import { Plus, X, Flame, Clock, Check, Users } from 'lucide-react';
+import { adminDropsApi } from '@/lib/api';
+import { Plus, X, Flame, Clock, Users } from 'lucide-react';
 
 interface Drop {
   id: string;

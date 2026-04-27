@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import Image from 'next/image';
 import { adminOrdersApi } from '@/lib/api';
 import { ArrowLeft, Package, User, MapPin, Calendar, Clock, Truck } from 'lucide-react';
 
@@ -74,7 +75,7 @@ export default function OrderDetailPage() {
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [note, setNote] = useState('');
 
-  const fetchOrder = async () => {
+  const fetchOrder = useCallback(async () => {
     try {
       const { data } = await adminOrdersApi.getById(orderId);
       setOrder(data);
@@ -82,11 +83,11 @@ export default function OrderDetailPage() {
       console.error(err);
     }
     setLoading(false);
-  };
+  }, [orderId]);
 
   useEffect(() => {
     fetchOrder();
-  }, [orderId]);
+  }, [fetchOrder]);
 
   const handleUpdateStatus = async (newStatus: string) => {
     setUpdatingStatus(true);
@@ -236,9 +237,11 @@ export default function OrderDetailPage() {
                   key={item.id}
                   className="flex items-center gap-4 p-3 bg-admin-surface rounded-xl border border-admin-border"
                 >
-                  <img
+                  <Image
                     src={item.productImage || '/placeholder.jpg'}
                     alt={item.productName}
+                    width={64}
+                    height={64}
                     className="w-16 h-16 rounded-lg object-cover bg-admin-elevated"
                   />
                   <div className="flex-1">
@@ -359,9 +362,11 @@ export default function OrderDetailPage() {
             {order.paymentProof && (
               <div className="mt-4">
                 <p className="text-gray-500 text-xs mb-2">Comprobante de pago:</p>
-                <img
+                <Image
                   src={order.paymentProof}
                   alt="Payment proof"
+                  width={400}
+                  height={300}
                   className="w-full rounded-lg border border-admin-border"
                 />
               </div>

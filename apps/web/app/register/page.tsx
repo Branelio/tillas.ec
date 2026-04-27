@@ -90,7 +90,7 @@ export default function RegisterPage() {
               <div className="relative">
                 <Phone size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
                 <input type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                  placeholder="+593991234567" className="w-full bg-tillas-surfaceElevated border border-tillas-border rounded-xl pl-10 pr-4 py-3 text-white placeholder:text-gray-600 focus:outline-none focus:border-tillas-primary transition-colors" />
+                  placeholder="+5930983199406" className="w-full bg-tillas-surfaceElevated border border-tillas-border rounded-xl pl-10 pr-4 py-3 text-white placeholder:text-gray-600 focus:outline-none focus:border-tillas-primary transition-colors" />
               </div>
             </div>
 

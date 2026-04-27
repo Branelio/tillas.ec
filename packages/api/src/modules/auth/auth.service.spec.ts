@@ -21,7 +21,7 @@ describe('AuthService', () => {
   };
 
   const mockJwtService = {
-    sign: jest.fn().mockReturnValue('mock-token'),
+    signAsync: jest.fn().mockResolvedValue('mock-token'),
   };
 
   const mockMailService = {
@@ -103,7 +103,7 @@ describe('AuthService', () => {
         where: { email: registerDto.email },
       });
       expect(prismaService.user.create).toHaveBeenCalled();
-      expect(result).toHaveProperty('id');
+      expect(result).toHaveProperty('userId');
       expect(result).toHaveProperty('email');
       expect(result).toHaveProperty('message');
     });
@@ -134,8 +134,8 @@ describe('AuthService', () => {
       };
 
       mockPrismaService.user.findUnique.mockResolvedValue(mockUser);
-      mockJwtService.sign.mockReturnValueOnce('access-token');
-      mockJwtService.sign.mockReturnValueOnce('refresh-token');
+      mockJwtService.signAsync.mockResolvedValueOnce('access-token');
+      mockJwtService.signAsync.mockResolvedValueOnce('refresh-token');
 
       const result = await service.login(loginDto);
 

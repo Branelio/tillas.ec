@@ -6,6 +6,7 @@ import { NestFactory, Reflector } from '@nestjs/core';
 import { ValidationPipe, Logger, BadRequestException } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
+import { Request, Response } from 'express';
 import { AppModule } from './app.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from './modules/auth/guards/roles.guard';
@@ -71,10 +72,37 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
 
+  // Scalar API docs (alternative to Swagger UI)
+  const scalarHtml = `<!DOCTYPE html>
+<html>
+  <head>
+    <title>TILLAS.EC API Reference</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      body { margin: 0; }
+    </style>
+  </head>
+  <body>
+    <script
+      id="api-reference"
+      data-url="/api-json"
+      data-configuration='{"theme":"purple","layout":"modern","hideDownloadButton":false}'
+    ></script>
+    <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
+  </body>
+</html>`;
+
+  const httpAdapter = app.getHttpAdapter();
+  const instance = httpAdapter.getInstance();
+  instance.get('/scalar', (_req: Request, res: Response) => res.type('html').send(scalarHtml));
+  instance.get('/docs', (_req: Request, res: Response) => res.type('html').send(scalarHtml));
+
   const port = process.env.API_PORT || 4000;
   await app.listen(port);
   console.log(`\n🚀 TILLAS.EC API corriendo en http://localhost:${port}`);
   console.log(`📖 Swagger docs en http://localhost:${port}/api\n`);
+  console.log(`📘 Scalar docs en http://localhost:${port}/scalar\n`);
 }
 
 bootstrap();

@@ -1,21 +1,41 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, ScrollView, Image, TouchableOpacity, StyleSheet, Alert, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useCartStore } from '../store/cartStore';
 import { useAuthStore } from '../store/authStore';
 import { TillasButton } from '../components';
-import api from '../services/api';
+import { usersApi, ordersApi } from '../services/api';
 import { Colors, Spacing, FontSizes, BorderRadius } from '../constants/theme';
 import { getEstimatedDeliveryText } from '../utils/delivery';
 
 const SHIPPING_QUITO = 3.50;
 const SHIPPING_NACIONAL = 7.00;
 
+interface Address {
+  id: string;
+  label: string;
+  recipientName: string;
+  phone: string;
+  city: string;
+  sector: string;
+  mainStreet: string;
+  secondaryStreet?: string;
+  reference: string;
+  isDefault?: boolean;
+}
+
 export default function CheckoutScreen() {
   const router = useRouter();
-  const { items, subtotal, clearCart } = useCartStore();
+  const { items, subtotal } = useCartStore();
   const { user } = useAuthStore();
 
+  const [addresses, setAddresses] = useState<Address[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState('');
+  const [loadingAddresses, setLoadingAddresses] = useState(true);
+  const [useNewAddress, setUseNewAddress] = useState(false);
+
+  const [label, setLabel] = useState('Casa');
+  const [recipientName, setRecipientName] = useState(user?.name || '');
   const [city, setCity] = useState('');
   const [sector, setSector] = useState('');
   const [mainStreet, setMainStreet] = useState('');
@@ -24,35 +44,102 @@ export default function CheckoutScreen() {
   const [phone, setPhone] = useState(user?.phone || '');
   const [loading, setLoading] = useState(false);
 
-  const isQuito = city.toLowerCase().includes('quito');
+  useEffect(() => {
+    if (!user) {
+      setLoadingAddresses(false);
+      return;
+    }
+
+    usersApi
+      .getAddresses()
+      .then(({ data }) => {
+        const list = Array.isArray(data) ? data : [];
+        setAddresses(list);
+
+        const defaultAddress = list.find((addr: Address) => addr.isDefault);
+        if (defaultAddress) {
+          setSelectedAddressId(defaultAddress.id);
+        } else if (list.length > 0) {
+          setSelectedAddressId(list[0].id);
+        } else {
+          setUseNewAddress(true);
+        }
+      })
+      .catch(() => {
+        setUseNewAddress(true);
+      })
+      .finally(() => setLoadingAddresses(false));
+  }, [user]);
+
+  const selectedAddress = useMemo(
+    () => addresses.find((addr) => addr.id === selectedAddressId),
+    [addresses, selectedAddressId],
+  );
+
+  const shippingCity = useNewAddress ? city : selectedAddress?.city || '';
+  const isQuito = shippingCity.toLowerCase().includes('quito');
   const shipping = isQuito ? SHIPPING_QUITO : SHIPPING_NACIONAL;
   const total = subtotal + shipping;
+
+  const validateNewAddress = () => {
+    if (!label || !recipientName || !city || !sector || !mainStreet || !reference || !phone) {
+      Alert.alert('Error', 'Completa todos los campos obligatorios de la nueva dirección');
+      return false;
+    }
+    return true;
+  };
+
+  const getAddressIdForOrder = async () => {
+    if (!useNewAddress && selectedAddressId) {
+      return selectedAddressId;
+    }
+
+    if (!validateNewAddress()) {
+      return null;
+    }
+
+    const { data } = await usersApi.addAddress({
+      label,
+      recipientName,
+      phone,
+      city,
+      sector,
+      mainStreet,
+      secondaryStreet,
+      reference,
+      isDefault: addresses.length === 0,
+    });
+
+    const createdId = data?.id;
+    if (createdId) {
+      setAddresses((prev) => [data, ...prev]);
+      setSelectedAddressId(createdId);
+      setUseNewAddress(false);
+    }
+    return createdId || null;
+  };
 
   const handleCheckout = async () => {
     if (!user) {
       router.push('/(auth)/login');
       return;
     }
-    if (!city || !mainStreet || !phone) {
-      return Alert.alert('Error', 'Completa ciudad, calle principal y teléfono');
-    }
+
     setLoading(true);
     try {
-      const { data } = await api.post('/orders', {
-        shippingAddress: {
-          city,
-          sector,
-          mainStreet,
-          secondaryStreet,
-          reference,
-          phone,
-        },
-      });
+      const addressId = await getAddressIdForOrder();
+      if (!addressId) {
+        setLoading(false);
+        return;
+      }
+
+      const { data } = await ordersApi.create(addressId);
       router.push(`/payment/${data.id}`);
     } catch (err: any) {
       Alert.alert('Error', err.response?.data?.message || 'No se pudo crear la orden');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   if (items.length === 0) {
@@ -98,18 +185,60 @@ export default function CheckoutScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>📍 Dirección de Envío</Text>
 
-        <TextInput style={styles.input} placeholder="Ciudad *" placeholderTextColor={Colors.textMuted}
-          value={city} onChangeText={setCity} />
-        <TextInput style={styles.input} placeholder="Sector / Barrio" placeholderTextColor={Colors.textMuted}
-          value={sector} onChangeText={setSector} />
-        <TextInput style={styles.input} placeholder="Calle principal *" placeholderTextColor={Colors.textMuted}
-          value={mainStreet} onChangeText={setMainStreet} />
-        <TextInput style={styles.input} placeholder="Calle secundaria" placeholderTextColor={Colors.textMuted}
-          value={secondaryStreet} onChangeText={setSecondaryStreet} />
-        <TextInput style={styles.input} placeholder="Referencia (ej: junto a la panadería)" placeholderTextColor={Colors.textMuted}
-          value={reference} onChangeText={setReference} />
-        <TextInput style={styles.input} placeholder="Teléfono de contacto *" placeholderTextColor={Colors.textMuted}
-          value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
+        {!useNewAddress && (
+          <>
+            {loadingAddresses ? (
+              <Text style={styles.loadingText}>Cargando direcciones...</Text>
+            ) : addresses.length === 0 ? (
+              <Text style={styles.loadingText}>No tienes direcciones guardadas.</Text>
+            ) : (
+              <View style={styles.addressList}>
+                {addresses.map((addr) => {
+                  const selected = selectedAddressId === addr.id;
+                  return (
+                    <TouchableOpacity
+                      key={addr.id}
+                      style={[styles.addressCard, selected && styles.addressCardSelected]}
+                      onPress={() => setSelectedAddressId(addr.id)}
+                    >
+                      <View style={styles.addressHeadRow}>
+                        <Text style={styles.addressLabel}>{addr.label}</Text>
+                        {addr.isDefault ? <Text style={styles.defaultBadge}>Principal</Text> : null}
+                      </View>
+                      <Text style={styles.addressLine}>{addr.recipientName} • {addr.phone}</Text>
+                      <Text style={styles.addressSubLine}>{addr.mainStreet}{addr.secondaryStreet ? ` y ${addr.secondaryStreet}` : ''}, {addr.sector}, {addr.city}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
+          </>
+        )}
+
+        <TouchableOpacity onPress={() => setUseNewAddress((prev) => !prev)}>
+          <Text style={styles.toggleAddressText}>{useNewAddress ? 'Usar dirección guardada' : 'Agregar nueva dirección'}</Text>
+        </TouchableOpacity>
+
+        {useNewAddress && (
+          <>
+            <TextInput style={styles.input} placeholder="Etiqueta (Casa/Oficina) *" placeholderTextColor={Colors.textMuted}
+              value={label} onChangeText={setLabel} />
+            <TextInput style={styles.input} placeholder="Nombre de quien recibe *" placeholderTextColor={Colors.textMuted}
+              value={recipientName} onChangeText={setRecipientName} />
+            <TextInput style={styles.input} placeholder="Ciudad *" placeholderTextColor={Colors.textMuted}
+              value={city} onChangeText={setCity} />
+            <TextInput style={styles.input} placeholder="Sector / Barrio *" placeholderTextColor={Colors.textMuted}
+              value={sector} onChangeText={setSector} />
+            <TextInput style={styles.input} placeholder="Calle principal *" placeholderTextColor={Colors.textMuted}
+              value={mainStreet} onChangeText={setMainStreet} />
+            <TextInput style={styles.input} placeholder="Calle secundaria" placeholderTextColor={Colors.textMuted}
+              value={secondaryStreet} onChangeText={setSecondaryStreet} />
+            <TextInput style={styles.input} placeholder="Referencia (ej: junto a la panadería) *" placeholderTextColor={Colors.textMuted}
+              value={reference} onChangeText={setReference} />
+            <TextInput style={styles.input} placeholder="Teléfono de contacto *" placeholderTextColor={Colors.textMuted}
+              value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
+          </>
+        )}
       </View>
 
       {/* Delivery ETA */}
@@ -174,6 +303,34 @@ const styles = StyleSheet.create({
   itemSize: { color: Colors.textMuted, fontSize: FontSizes.xs },
   itemPrice: { color: Colors.textPrimary, fontSize: FontSizes.md, fontWeight: '700' },
   // Address
+  loadingText: { color: Colors.textMuted, fontSize: FontSizes.sm, marginBottom: Spacing.sm },
+  addressList: { gap: Spacing.sm, marginBottom: Spacing.sm },
+  addressCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    padding: Spacing.sm,
+  },
+  addressCardSelected: {
+    borderColor: Colors.primary,
+    backgroundColor: Colors.surfaceElevated,
+  },
+  addressHeadRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  addressLabel: { color: Colors.textPrimary, fontSize: FontSizes.sm, fontWeight: '700' },
+  defaultBadge: {
+    color: Colors.primary,
+    fontSize: FontSizes.xs,
+    fontWeight: '700',
+    borderColor: Colors.primary,
+    borderWidth: 1,
+    borderRadius: BorderRadius.full,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  addressLine: { color: Colors.textSecondary, fontSize: FontSizes.xs, marginTop: 2 },
+  addressSubLine: { color: Colors.textMuted, fontSize: FontSizes.xs, marginTop: 2 },
+  toggleAddressText: { color: Colors.primary, fontSize: FontSizes.sm, fontWeight: '600', marginBottom: Spacing.sm },
   input: {
     backgroundColor: Colors.surface, borderRadius: BorderRadius.lg, paddingHorizontal: Spacing.md,
     paddingVertical: 14, color: Colors.textPrimary, fontSize: FontSizes.md,

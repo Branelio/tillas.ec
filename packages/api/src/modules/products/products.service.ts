@@ -11,8 +11,8 @@ export class ProductsService {
   ) {}
 
   async findAll(params: {
-    page?: number;
-    limit?: number;
+    page?: any;
+    limit?: any;
     brand?: string;
     category?: string;
     size?: string;
@@ -21,7 +21,9 @@ export class ProductsService {
     search?: string;
     sort?: string;
   }) {
-    const { page = 1, limit = 20, brand, category, size, minPrice, maxPrice, search, sort } = params;
+    const { brand, category, size, minPrice, maxPrice, search, sort } = params;
+    const page = Number(params.page || 1);
+    const limit = Number(params.limit || 20);
     const skip = (page - 1) * limit;
 
     const where: Prisma.ProductWhereInput = {
@@ -125,8 +127,45 @@ export class ProductsService {
 
   // === Admin CRUD ===
   async create(data: any) {
+    const { brandName, categoryName, variants, ...productData } = data;
+    
+    let brandId = 'default';
+    if (brandName) {
+      const brand = await this.prisma.brand.upsert({
+        where: { name: brandName.trim() },
+        update: {},
+        create: { name: brandName.trim(), slug: brandName.trim().toLowerCase().replace(/\s+/g, '-') },
+      });
+      brandId = brand.id;
+    }
+
+    let categoryId = 'default';
+    if (categoryName) {
+      const category = await this.prisma.category.upsert({
+        where: { name: categoryName.trim() },
+        update: {},
+        create: { name: categoryName.trim(), slug: categoryName.trim().toLowerCase().replace(/\s+/g, '-') },
+      });
+      categoryId = category.id;
+    }
+
+    const safeSlug = productData.slug || productData.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now();
+    
+    // Autogenerate SKUs and deduplicate sizes if needed
+    const safeVariants = variants && variants.length > 0 ? variants.map((v: any, index: number) => ({
+      ...v,
+      sku: v.sku && v.sku.trim() !== '' ? v.sku : `${safeSlug}-${v.size}-${Date.now()}-${index}`
+    })) : [];
+
     const product = await this.prisma.product.create({
-      data: { ...data, variants: { createMany: { data: data.variants } } },
+      data: { 
+        ...productData, 
+        slug: safeSlug,
+        brandId,
+        categoryId,
+        model: data.model || 'Standard',
+        variants: safeVariants.length > 0 ? { createMany: { data: safeVariants } } : undefined 
+      },
       include: { brand: true, category: true, variants: true },
     });
     await this.invalidateCache();
@@ -134,9 +173,52 @@ export class ProductsService {
   }
 
   async update(id: string, data: any) {
+    const { brandName, categoryName, variants, ...productData } = data;
+    
+    const payload: any = { ...productData };
+
+    if (brandName) {
+      const brand = await this.prisma.brand.upsert({
+        where: { name: brandName.trim() },
+        update: {},
+        create: { name: brandName.trim(), slug: brandName.trim().toLowerCase().replace(/\s+/g, '-') },
+      });
+      payload.brandId = brand.id;
+    }
+
+    if (categoryName) {
+      const category = await this.prisma.category.upsert({
+        where: { name: categoryName.trim() },
+        update: {},
+        create: { name: categoryName.trim(), slug: categoryName.trim().toLowerCase().replace(/\s+/g, '-') },
+      });
+      payload.categoryId = category.id;
+    }
+
+    const safeSlug = productData.slug || productData.name?.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now();
+
+    if (variants) {
+      // Remover duplicados en sizes (El frontend puede enviar [25, 25, 25])
+      const uniqueVariantsMap = new Map();
+      variants.forEach((v: any) => {
+        uniqueVariantsMap.set(v.size, v);
+      });
+      const deduplicatedVariants = Array.from(uniqueVariantsMap.values());
+
+      const safeVariants = deduplicatedVariants.map((v: any, index: number) => ({
+        ...v,
+        sku: v.sku && v.sku.trim() !== '' ? v.sku : `${safeSlug || 'upd'}-${v.size}-${Date.now()}-${index}`
+      }));
+
+      payload.variants = {
+        deleteMany: {},
+        createMany: { data: safeVariants }
+      };
+    }
+
     const product = await this.prisma.product.update({
       where: { id },
-      data,
+      data: payload,
       include: { brand: true, category: true, variants: true },
     });
     await this.invalidateCache();

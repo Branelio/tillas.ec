@@ -76,7 +76,7 @@ export default function DropDetailPage() {
 
   // Collect all sizes from the drop products
   const availableSizes = drop?.products
-    ? [...new Set(drop.products.flatMap(dp => dp.product.variants?.map((v: any) => v.size) || []))].sort()
+    ? Array.from(new Set(drop.products.flatMap(dp => dp.product.variants?.map((v: any) => v.size) || []))).sort()
     : [];
 
   useEffect(() => {
