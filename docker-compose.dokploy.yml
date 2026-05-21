@@ -305,7 +305,7 @@ services:
     entrypoint: |
       sh -c '
         while true; do
-          pg_dump -h postgres -U $$DB_USER -d $$DB_NAME | gzip > /backups/tillas_$$$(date +%Y%m%d_%H%M%S).sql.gz
+          pg_dump -h postgres -U $$DB_USER -d $$DB_NAME | gzip > /backups/tillas_$$(date +%Y%m%d_%H%M%S).sql.gz
           find /backups -name "*.sql.gz" -mtime +7 -delete
           sleep 86400
         done
