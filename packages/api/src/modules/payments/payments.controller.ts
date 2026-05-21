@@ -13,9 +13,10 @@ export class PaymentsController {
 
   @Get('bank-info')
   @ApiOperation({ summary: 'Obtener datos bancarios para transferencia' })
-  getBankInfo() {
-    return this.paymentsService.getBankInfo();
+  async getBankInfo() {
+    return await this.paymentsService.getBankInfo();
   }
+
 
   @Post('upload-receipt')
   @UseGuards(JwtAuthGuard)

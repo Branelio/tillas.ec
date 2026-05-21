@@ -4,6 +4,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { LoyaltyService } from '../loyalty/loyalty.service';
 import { MailService } from '../../mail/mail.service';
 import { MediaService } from '../media/media.service';
+import { SettingsService } from '../settings/settings.service';
 
 @Injectable()
 export class PaymentsService {
@@ -15,19 +16,23 @@ export class PaymentsService {
     private mail: MailService,
     private media: MediaService,
     private config: ConfigService,
+    private settings: SettingsService,
   ) {}
 
   /**
    * Obtener datos bancarios para transferencia
    * Retorna la información de la cuenta + QR
    */
-  getBankInfo() {
+  async getBankInfo() {
+    const keys = ['bankName', 'accountNumber', 'accountType', 'accountHolder', 'idNumber'];
+    const bankSettings = await this.settings.getSettings(keys);
+
     return {
-      bankName: this.config.get<string>('BANK_NAME') || 'Banco Pichincha',
-      accountNumber: this.config.get<string>('BANK_ACCOUNT') || '2209004611',
-      accountType: this.config.get<string>('BANK_ACCOUNT_TYPE') || 'Ahorros',
-      accountHolder: this.config.get<string>('BANK_HOLDER') || 'BRANDON JOEL',
-      idNumber: this.config.get<string>('BANK_ID_NUMBER') || null,
+      bankName: bankSettings.bankName || this.config.get<string>('BANK_NAME') || 'Banco Pichincha',
+      accountNumber: bankSettings.accountNumber || this.config.get<string>('BANK_ACCOUNT') || '2209004611',
+      accountType: bankSettings.accountType || this.config.get<string>('BANK_ACCOUNT_TYPE') || 'Ahorros',
+      accountHolder: bankSettings.accountHolder || this.config.get<string>('BANK_HOLDER') || 'BRANDON JOEL',
+      idNumber: bankSettings.idNumber || this.config.get<string>('BANK_ID_NUMBER') || null,
       qrImage: '/images/qr-pago.png',
       instructions: [
         'Realiza una transferencia o depósito al número de cuenta indicado.',
@@ -37,6 +42,7 @@ export class PaymentsService {
       ],
     };
   }
+
 
   /**
    * Subir comprobante de transferencia

@@ -155,3 +155,13 @@ export const adminTelegramApi = {
   getPendingCount: () => api.get('/telegram/imports/pending-count').catch(() => ({ data: { count: 0 } })),
   syncHistory: (limit: number) => api.patch('/telegram/sync-history', { limit }),
 };
+
+// ─── Settings ───
+export const adminSettingsApi = {
+  get: () => api.get('/admin/settings'),
+  saveBank: (data: { bankName: string; accountNumber: string; accountType: string; accountHolder: string; idNumber?: string }) =>
+    api.patch('/admin/settings/bank', data),
+  saveSite: (data: { siteName: string; siteUrl: string; shippingCostLocal: string; shippingCostNational: string; freeShippingThreshold: string; currency: string; timezone: string }) =>
+    api.patch('/admin/settings/site', data),
+};
+

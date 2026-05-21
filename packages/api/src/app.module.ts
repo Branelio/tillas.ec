@@ -21,8 +21,10 @@ import { ReviewsModule } from './modules/reviews/reviews.module';
 import { ReturnsModule } from './modules/returns/returns.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { TelegramModule } from './modules/telegram/telegram.module';
+import { SettingsModule } from './modules/settings/settings.module';
 import { GatewayModule } from './gateway/gateway.module';
 import { HealthController } from './health.controller';
+
 
 @Module({
   imports: [
@@ -55,6 +57,7 @@ import { HealthController } from './health.controller';
     ReturnsModule,
     AdminModule,
     TelegramModule,
+    SettingsModule,
 
     // Real-time (Socket.io)
     GatewayModule,
@@ -62,3 +65,4 @@ import { HealthController } from './health.controller';
   controllers: [HealthController],
 })
 export class AppModule {}
+

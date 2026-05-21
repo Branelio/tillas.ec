@@ -1,10 +1,14 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { calculateDeliveryDates } from './utils/delivery-calculator.util';
+import { SettingsService } from '../settings/settings.service';
 
 @Injectable()
 export class OrdersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private settings: SettingsService,
+  ) {}
 
   async createOrder(userId: string, addressId: string) {
     // 1. Obtener carrito
@@ -29,9 +33,24 @@ export class OrdersService {
     const subtotal = cartItems.reduce(
       (sum, item) => sum + Number(item.variant.price) * item.quantity, 0,
     );
+
+    const keys = ['shippingCostLocal', 'shippingCostNational', 'freeShippingThreshold'];
+    const siteSettings = await this.settings.getSettings(keys);
+
+    const costLocal = Number(siteSettings.shippingCostLocal || '3.50');
+    const costNational = Number(siteSettings.shippingCostNational || '7.00');
+    const threshold = Number(siteSettings.freeShippingThreshold || '100.00');
+
     const normalizedCity = String(address.city || '').trim().toLowerCase();
-    const shippingCost = normalizedCity === 'quito' ? 3.50 : 7.00;
+    
+    let shippingCost = normalizedCity === 'quito' ? costLocal : costNational;
+    
+    if (subtotal >= threshold) {
+      shippingCost = 0;
+    }
+
     const total = subtotal + shippingCost;
+
 
     // 5. Generar número de orden
     const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
