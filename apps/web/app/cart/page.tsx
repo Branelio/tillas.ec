@@ -14,20 +14,8 @@ export default function CartPage() {
   }, []);
 
   useEffect(() => {
-    if (isAuthenticated) fetchCart();
+    fetchCart();
   }, [isAuthenticated]);
-
-  if (!isAuthenticated) {
-    return (
-      <div className="max-w-3xl mx-auto px-4 py-20 text-center">
-        <ShoppingBag size={48} className="mx-auto text-gray-600 mb-4" />
-        <h2 className="font-heading text-2xl text-white">Inicia sesión para ver tu carrito</h2>
-        <Link href="/login" className="inline-block mt-6 px-6 py-3 bg-tillas-primary text-black font-bold rounded-xl hover:bg-tillas-primaryDark transition-colors">
-          Iniciar Sesión
-        </Link>
-      </div>
-    );
-  }
 
   if (isLoading) {
     return (
@@ -146,7 +134,7 @@ export default function CartPage() {
               </div>
             </div>
 
-            <Link href="/checkout"
+            <Link href={isAuthenticated ? "/checkout" : "/login?callbackUrl=/checkout"}
               className="mt-6 w-full flex items-center justify-center gap-2 py-4 bg-tillas-primary text-black font-bold rounded-xl text-lg hover:bg-tillas-primaryDark transition-colors">
               Checkout <ArrowRight size={18} />
             </Link>

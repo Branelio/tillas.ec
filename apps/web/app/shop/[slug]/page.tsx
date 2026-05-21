@@ -64,13 +64,24 @@ export default function ProductDetailPage() {
   }, [product?.id]);
 
   const handleAddToCart = async () => {
-    if (!selectedVariant || !isAuthenticated) {
-      if (!isAuthenticated) window.location.href = '/login';
-      return;
-    }
+    if (!selectedVariant || !product) return;
     setAdding(true);
     try {
-      await addItem(selectedVariant.id);
+      await addItem(selectedVariant.id, 1, {
+        variant: {
+          id: selectedVariant.id,
+          size: selectedVariant.size,
+          price: Number(selectedVariant.price),
+          sku: selectedVariant.sku,
+          product: {
+            id: product.id,
+            name: product.name,
+            slug: product.slug,
+            images: product.images,
+            brand: { name: product.brand.name }
+          }
+        }
+      });
       setAdded(true);
       setTimeout(() => setAdded(false), 2000);
     } catch (err) {
