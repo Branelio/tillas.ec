@@ -26,14 +26,15 @@ RUN npm --workspace apps/web run build
 
 # ─── Production ───
 FROM node:20-alpine AS runner
-WORKDIR /app/apps/web
+WORKDIR /app
 
 ENV NODE_ENV=production
 
 # Copiar standalone server + assets estáticos
 COPY --from=builder /app/apps/web/.next/standalone ./
-COPY --from=builder /app/apps/web/.next/static ./.next/static
-COPY --from=builder /app/apps/web/public ./public
+COPY --from=builder /app/apps/web/.next/static ./apps/web/.next/static
+RUN mkdir -p ./apps/web/public
+COPY --from=builder /app/apps/web/public/ ./apps/web/public/
 
 EXPOSE 3000
 ENV PORT=3000
@@ -42,4 +43,4 @@ ENV HOSTNAME="0.0.0.0"
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:3000 || exit 1
 
-CMD ["node", "server.js"]
+CMD ["node", "apps/web/server.js"]

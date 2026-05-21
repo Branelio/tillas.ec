@@ -26,15 +26,15 @@ RUN npm --workspace apps/admin run build
 
 # ─── Production ───
 FROM node:20-alpine AS runner
-WORKDIR /app/apps/admin
+WORKDIR /app
 
 ENV NODE_ENV=production
 
 # Copiar standalone server + assets estáticos
 COPY --from=builder /app/apps/admin/.next/standalone ./
-COPY --from=builder /app/apps/admin/.next/static ./.next/static
-RUN mkdir -p ./public
-COPY --from=builder /app/apps/admin/public/ ./public/
+COPY --from=builder /app/apps/admin/.next/static ./apps/admin/.next/static
+RUN mkdir -p ./apps/admin/public
+COPY --from=builder /app/apps/admin/public/ ./apps/admin/public/
 
 EXPOSE 3001
 ENV PORT=3001
@@ -43,4 +43,4 @@ ENV HOSTNAME="0.0.0.0"
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:3001 || exit 1
 
-CMD ["node", "server.js"]
+CMD ["node", "apps/admin/server.js"]
