@@ -22,10 +22,10 @@ services:
       - REDIS_PORT=6379
       - MINIO_ENDPOINT=minio
       - MINIO_PORT=9000
-      - API_URL=https://api.tillas.ec
-      - WEB_URL=https://tillas.ec
-      - ADMIN_URL=https://admin.tillas.ec
-      - CORS_ORIGIN=https://tillas.ec,https://www.tillas.ec,https://admin.tillas.ec
+      - API_URL=https://api.158.247.126.105.nip.io
+      - WEB_URL=https://158.247.126.105.nip.io
+      - ADMIN_URL=https://admin.158.247.126.105.nip.io
+      - CORS_ORIGIN=https://158.247.126.105.nip.io,https://www.158.247.126.105.nip.io,https://admin.158.247.126.105.nip.io
       - LOG_LEVEL=info
       - LOG_FORMAT=production
     depends_on:
@@ -37,7 +37,7 @@ services:
         condition: service_started
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.api.rule=Host(`api.tillas.ec`)"
+      - "traefik.http.routers.api.rule=Host(`api.158.247.126.105.nip.io`)"
       - "traefik.http.routers.api.tls=true"
       - "traefik.http.routers.api.tls.certresolver=letsencrypt"
       - "traefik.http.services.api.loadbalancer.server.port=4000"
@@ -75,17 +75,17 @@ services:
       context: .
       dockerfile: apps/web/Dockerfile
       args:
-        - NEXT_PUBLIC_API_URL=https://api.tillas.ec
+        - NEXT_PUBLIC_API_URL=https://api.158.247.126.105.nip.io
     container_name: tillas-web
     restart: unless-stopped
     env_file: .env
     environment:
       - NODE_ENV=production
-      - NEXT_PUBLIC_API_URL=https://api.tillas.ec
-      - API_URL=https://api.tillas.ec
+      - NEXT_PUBLIC_API_URL=https://api.158.247.126.105.nip.io
+      - API_URL=https://api.158.247.126.105.nip.io
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.web.rule=Host(`tillas.ec`) || Host(`www.tillas.ec`)"
+      - "traefik.http.routers.web.rule=Host(`158.247.126.105.nip.io`) || Host(`www.158.247.126.105.nip.io`)"
       - "traefik.http.routers.web.tls=true"
       - "traefik.http.routers.web.tls.certresolver=letsencrypt"
       - "traefik.http.services.web.loadbalancer.server.port=3000"
@@ -120,17 +120,17 @@ services:
       context: .
       dockerfile: apps/admin/Dockerfile
       args:
-        - NEXT_PUBLIC_API_URL=https://api.tillas.ec
+        - NEXT_PUBLIC_API_URL=https://api.158.247.126.105.nip.io
     container_name: tillas-admin
     restart: unless-stopped
     env_file: .env
     environment:
       - NODE_ENV=production
-      - NEXT_PUBLIC_API_URL=https://api.tillas.ec
-      - API_URL=https://api.tillas.ec
+      - NEXT_PUBLIC_API_URL=https://api.158.247.126.105.nip.io
+      - API_URL=https://api.158.247.126.105.nip.io
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.admin.rule=Host(`admin.tillas.ec`)"
+      - "traefik.http.routers.admin.rule=Host(`admin.158.247.126.105.nip.io`)"
       - "traefik.http.routers.admin.tls=true"
       - "traefik.http.routers.admin.tls.certresolver=letsencrypt"
       - "traefik.http.services.admin.loadbalancer.server.port=3001"
@@ -250,18 +250,18 @@ services:
     environment:
       MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
       MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
-      MINIO_BROWSER_REDIRECT_URL: https://media-console.tillas.ec
-      MINIO_PUBLIC_URLS: https://media.tillas.ec
+      MINIO_BROWSER_REDIRECT_URL: https://media-console.158.247.126.105.nip.io
+      MINIO_PUBLIC_URLS: https://media.158.247.126.105.nip.io
     volumes:
       - minio_data:/data
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.media.rule=Host(`media.tillas.ec`)"
+      - "traefik.http.routers.media.rule=Host(`media.158.247.126.105.nip.io`)"
       - "traefik.http.routers.media.tls=true"
       - "traefik.http.routers.media.tls.certresolver=letsencrypt"
       - "traefik.http.services.media.loadbalancer.server.port=9000"
       - "traefik.http.routers.media.middlewares=media-security"
-      - "traefik.http.routers.media-console.rule=Host(`media-console.tillas.ec`)"
+      - "traefik.http.routers.media-console.rule=Host(`media-console.158.247.126.105.nip.io`)"
       - "traefik.http.routers.media-console.tls=true"
       - "traefik.http.routers.media-console.tls.certresolver=letsencrypt"
       - "traefik.http.services.media-console.loadbalancer.server.port=9001"
