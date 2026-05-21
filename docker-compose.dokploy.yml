@@ -84,6 +84,7 @@ services:
       - NODE_ENV=production
       - NEXT_PUBLIC_API_URL=https://api.158.247.126.105.nip.io
       - API_URL=https://api.158.247.126.105.nip.io
+      - HOSTNAME=0.0.0.0
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.web.rule=Host(`158.247.126.105.nip.io`) || Host(`www.158.247.126.105.nip.io`)"
@@ -130,6 +131,7 @@ services:
       - NODE_ENV=production
       - NEXT_PUBLIC_API_URL=https://api.158.247.126.105.nip.io
       - API_URL=https://api.158.247.126.105.nip.io
+      - HOSTNAME=0.0.0.0
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.admin.rule=Host(`admin.158.247.126.105.nip.io`)"
