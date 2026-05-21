@@ -45,9 +45,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     set({ user: null, isAuthenticated: false, isLoading: false });
-    // Redirigir al login
+    // Redirigir a la home sólo si estaba en una ruta protegida
     if (typeof window !== 'undefined') {
-      window.location.href = '/login';
+      const PROTECTED_ROUTES = ['/profile', '/checkout', '/orders', '/payment'];
+      const path = window.location.pathname;
+      const isProtected = PROTECTED_ROUTES.some(route => path === route || path.startsWith(route + '/'));
+      if (isProtected) {
+        window.location.href = '/';
+      }
     }
   },
 

@@ -16,6 +16,14 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+const PROTECTED_ROUTES = ['/profile', '/checkout', '/orders', '/payment'];
+
+const shouldRedirectToLogin = () => {
+  if (typeof window === 'undefined') return false;
+  const path = window.location.pathname;
+  return PROTECTED_ROUTES.some(route => path === route || path.startsWith(route + '/'));
+};
+
 // Interceptor: refresh token on 401
 api.interceptors.response.use(
   (res) => res,
@@ -27,7 +35,9 @@ api.interceptors.response.use(
         const refreshToken = localStorage.getItem('refreshToken');
         if (!refreshToken) {
           localStorage.removeItem('accessToken');
-          if (typeof window !== 'undefined') window.location.href = '/login';
+          if (shouldRedirectToLogin()) {
+            window.location.href = '/login';
+          }
           return Promise.reject(error);
         }
         const { data } = await axios.post(`${API_URL}/auth/refresh`, { refreshToken });
@@ -38,7 +48,9 @@ api.interceptors.response.use(
       } catch {
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
-        if (typeof window !== 'undefined') window.location.href = '/login';
+        if (shouldRedirectToLogin()) {
+          window.location.href = '/login';
+        }
       }
     }
     return Promise.reject(error);
