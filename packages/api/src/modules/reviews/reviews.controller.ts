@@ -3,6 +3,7 @@ import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ReviewsService } from './reviews.service';
 import { CreateReviewDto } from './dto/create-review.dto';
+import { Public } from '../../common/decorators';
 
 @ApiTags('reviews')
 @Controller('reviews')
@@ -18,6 +19,7 @@ export class ReviewsController {
   }
 
   @Get('product/:productId')
+  @Public()
   @ApiOperation({ summary: 'Reviews de un producto' })
   getByProduct(@Param('productId') productId: string) {
     return this.reviewsService.getByProduct(productId);

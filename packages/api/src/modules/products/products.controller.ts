@@ -3,7 +3,7 @@ import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger'
 import { ProductsService } from './products.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '../../common/decorators';
+import { Roles, Public } from '../../common/decorators';
 
 @ApiTags('products')
 @Controller('products')
@@ -11,6 +11,7 @@ export class ProductsController {
   constructor(private productsService: ProductsService) {}
 
   @Get()
+  @Public()
   @ApiOperation({ summary: 'Listar productos con filtros y paginación' })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
@@ -34,30 +35,35 @@ export class ProductsController {
   }
 
   @Get('featured')
+  @Public()
   @ApiOperation({ summary: 'Productos destacados' })
   getFeatured() {
     return this.productsService.getFeatured();
   }
 
   @Get('new-arrivals')
+  @Public()
   @ApiOperation({ summary: 'Últimos lanzamientos' })
   getNewArrivals() {
     return this.productsService.getNewArrivals();
   }
 
   @Get('brands')
+  @Public()
   @ApiOperation({ summary: 'Listar marcas' })
   getBrands() {
     return this.productsService.getBrands();
   }
 
   @Get('categories')
+  @Public()
   @ApiOperation({ summary: 'Listar categorías' })
   getCategories() {
     return this.productsService.getCategories();
   }
 
   @Get(':slug')
+  @Public()
   @ApiOperation({ summary: 'Detalle de producto por slug' })
   findBySlug(@Param('slug') slug: string) {
     return this.productsService.findBySlug(slug);

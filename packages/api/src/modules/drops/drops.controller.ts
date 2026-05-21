@@ -2,7 +2,7 @@ import { Controller, Get, Post, Patch, Body, Param, UseGuards, Req } from '@nest
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '../../common/decorators';
+import { Roles, Public } from '../../common/decorators';
 import { DropsService } from './drops.service';
 
 @ApiTags('drops')
@@ -11,12 +11,14 @@ export class DropsController {
   constructor(private dropsService: DropsService) {}
 
   @Get()
+  @Public()
   @ApiOperation({ summary: 'Drops activos y próximos' })
   getActiveDrops() {
     return this.dropsService.getActiveDrops();
   }
 
   @Get(':slug')
+  @Public()
   @ApiOperation({ summary: 'Detalle de drop' })
   getDropBySlug(@Param('slug') slug: string) {
     return this.dropsService.getDropBySlug(slug);
