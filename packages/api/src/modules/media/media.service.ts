@@ -10,15 +10,16 @@ export class MediaService {
   private publicUrl: string;
 
   constructor(private config: ConfigService) {
+    const useSSL = this.config.get<string>('MINIO_USE_SSL') === 'true';
     this.minioClient = new Minio.Client({
-      endPoint: config.get<string>('MINIO_ENDPOINT', 'localhost'),
-      port: parseInt(config.get<string>('MINIO_PORT', '9000')),
-      useSSL: config.get<string>('NODE_ENV') === 'production',
-      accessKey: config.get<string>('MINIO_ACCESS_KEY', ''),
-      secretKey: config.get<string>('MINIO_SECRET_KEY', ''),
+      endPoint: this.config.get<string>('MINIO_ENDPOINT', 'localhost'),
+      port: parseInt(this.config.get<string>('MINIO_PORT', '9000')),
+      useSSL,
+      accessKey: this.config.get<string>('MINIO_ACCESS_KEY', ''),
+      secretKey: this.config.get<string>('MINIO_SECRET_KEY', ''),
     });
-    this.bucket = config.get<string>('MINIO_BUCKET', 'tillas-media');
-    this.publicUrl = config.get<string>('MINIO_PUBLIC_URL', 'http://localhost:9000');
+    this.bucket = this.config.get<string>('MINIO_BUCKET', 'tillas-media');
+    this.publicUrl = this.config.get<string>('MINIO_PUBLIC_URL', 'http://localhost:9000');
   }
 
   async onModuleInit() {
