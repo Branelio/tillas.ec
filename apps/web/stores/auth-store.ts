@@ -16,6 +16,7 @@ interface AuthState {
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
+  loginWithGoogle: (idToken: string) => Promise<void>;
   register: (data: any) => Promise<{ email: string }>;
   logout: () => void;
   loadUser: () => Promise<void>;
@@ -34,6 +35,19 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     localStorage.setItem('accessToken', data.accessToken);
     localStorage.setItem('refreshToken', data.refreshToken);
     set({ user: data.user, isAuthenticated: true, isLoading: false });
+  },
+
+  loginWithGoogle: async (idToken: string) => {
+    set({ isLoading: true });
+    try {
+      const { data } = await authApi.googleLogin(idToken);
+      localStorage.setItem('accessToken', data.accessToken);
+      localStorage.setItem('refreshToken', data.refreshToken);
+      set({ user: data.user, isAuthenticated: true, isLoading: false });
+    } catch (error) {
+      set({ isLoading: false });
+      throw error;
+    }
   },
 
   register: async (formData) => {

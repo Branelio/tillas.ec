@@ -73,6 +73,7 @@ export const authApi = {
   verifyOtp: (data: { email: string; code: string }) => api.post('/auth/verify-otp', data),
   resendOtp: (email: string) => api.post('/auth/resend-otp', { email }),
   login: (data: { email: string; password: string }) => api.post('/auth/login', data),
+  googleLogin: (idToken: string) => api.post('/auth/google', { idToken }),
   getProfile: () => api.get('/users/profile'),
   logout: () => api.post('/auth/logout'),
 };

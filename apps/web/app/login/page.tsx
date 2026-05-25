@@ -15,7 +15,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login, isAuthenticated } = useAuthStore();
+  const { login, loginWithGoogle, isAuthenticated } = useAuthStore();
 
   // Si ya está autenticado, redirigir
   useEffect(() => {
@@ -23,6 +23,58 @@ export default function LoginPage() {
       router.push(callbackUrl);
     }
   }, [isAuthenticated, callbackUrl, router]);
+
+  // Manejar el callback de Google OAuth2 (Implicit Grant)
+  useEffect(() => {
+    const handleGoogleCallback = async () => {
+      if (typeof window === 'undefined') return;
+      const hash = window.location.hash;
+      if (!hash) return;
+
+      const params = new URLSearchParams(hash.substring(1));
+      const idToken = params.get('id_token');
+
+      if (idToken) {
+        setLoading(true);
+        setError('');
+        try {
+          // Limpiar el hash de la URL para que no quede expuesto el token
+          window.history.replaceState(null, '', window.location.pathname + window.location.search);
+          
+          await loginWithGoogle(idToken);
+          router.push(callbackUrl);
+        } catch (err: any) {
+          console.error('Error al iniciar sesión con Google:', err);
+          setError(err.response?.data?.message || 'Error al autenticar con Google. Inténtalo de nuevo.');
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+
+    handleGoogleCallback();
+  }, [loginWithGoogle, router, callbackUrl]);
+
+  const handleGoogleLogin = () => {
+    setError('');
+    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '913024083917-s07inopl0u4hrn5ua9bme7viimvesgt6.apps.googleusercontent.com';
+    const redirectUri = typeof window !== 'undefined'
+      ? `${window.location.origin}/login`
+      : 'http://localhost:3000/login';
+    const scope = 'openid email profile';
+    const state = 'google_login';
+    const nonce = Math.random().toString(36).substring(2);
+
+    const googleUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+      `client_id=${clientId}` +
+      `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+      `&response_type=id_token` +
+      `&scope=${encodeURIComponent(scope)}` +
+      `&state=${state}` +
+      `&nonce=${nonce}`;
+
+    window.location.href = googleUrl;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -146,8 +198,26 @@ export default function LoginPage() {
               <div className="w-full border-t border-tillas-border"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-tillas-surface text-tillas-text-muted">o</span>
+              <span className="px-4 bg-tillas-surface text-tillas-text-muted">o continúa con</span>
             </div>
+          </div>
+
+          {/* Google Sign-in Button */}
+          <div className="mb-6">
+            <button
+              type="button"
+              onClick={handleGoogleLogin}
+              disabled={loading}
+              className="w-full py-3 bg-tillas-surface-elevated text-white font-medium rounded-xl text-md border border-tillas-border hover:border-white/20 hover:bg-tillas-surface-elevated/80 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 active:scale-[0.98]"
+            >
+              <svg className="w-5 h-5" viewBox="0 0 24 24">
+                <path
+                  fill="#EA4335"
+                  d="M12.24 10.285V14.4h6.887c-.648 2.41-2.519 4.114-5.136 4.114-3.513 0-6.386-2.873-6.386-6.386 0-3.513 2.873-6.386 6.386-6.386 1.63 0 3.117.618 4.254 1.63L21.31 4.45A10.96 10.96 0 0 0 12.24 1C6.058 1 1 6.058 1 12.24s5.058 11.24 11.24 11.24c6.452 0 11.624-5.172 11.624-11.624 0-.825-.078-1.614-.23-2.387H12.24z"
+                />
+              </svg>
+              Google
+            </button>
           </div>
 
           {/* Register Link */}
