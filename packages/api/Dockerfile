@@ -48,6 +48,7 @@ COPY --from=builder /app/packages/api/dist ./packages/api/dist
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma/client ./node_modules/@prisma/client
 COPY --from=builder /app/packages/database/prisma ./packages/database/prisma
+COPY --from=builder /app/packages/database/migrate-media-urls.js ./packages/database/migrate-media-urls.js
 
 # Instalar Prisma CLI para migraciones en producción
 RUN npm i -g prisma@6.4.0
