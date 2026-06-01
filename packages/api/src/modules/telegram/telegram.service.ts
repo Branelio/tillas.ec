@@ -367,31 +367,25 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
       .replace(/-+/g, '-')
       .trim();
 
-    // Buscar o crear la marca
-    let brandId: string;
-    const brandSlug = (data.brandName || 'sin-marca').toLowerCase().replace(/\s+/g, '-');
-    const existingBrand = await this.prisma.brand.findUnique({ where: { slug: brandSlug } });
-    if (existingBrand) {
-      brandId = existingBrand.id;
-    } else {
-      const newBrand = await this.prisma.brand.create({
-        data: { name: data.brandName || 'Sin Marca', slug: brandSlug },
-      });
-      brandId = newBrand.id;
-    }
+    // Buscar o crear la marca (usando upsert sobre 'name' para evitar colisiones)
+    const brandName = (data.brandName || 'Sin Marca').trim();
+    const brandSlug = brandName.toLowerCase().replace(/\s+/g, '-');
+    const brand = await this.prisma.brand.upsert({
+      where: { name: brandName },
+      update: {},
+      create: { name: brandName, slug: brandSlug },
+    });
+    const brandId = brand.id;
 
-    // Buscar o crear la categoría
-    let categoryId: string;
-    const catSlug = (data.categoryName || 'zapatillas').toLowerCase().replace(/\s+/g, '-');
-    const existingCat = await this.prisma.category.findUnique({ where: { slug: catSlug } });
-    if (existingCat) {
-      categoryId = existingCat.id;
-    } else {
-      const newCat = await this.prisma.category.create({
-        data: { name: data.categoryName || 'Zapatillas', slug: catSlug },
-      });
-      categoryId = newCat.id;
-    }
+    // Buscar o crear la categoría (usando upsert sobre 'name' para evitar colisiones)
+    const categoryName = (data.categoryName || 'Zapatillas').trim();
+    const catSlug = categoryName.toLowerCase().replace(/\s+/g, '-');
+    const category = await this.prisma.category.upsert({
+      where: { name: categoryName },
+      update: {},
+      create: { name: categoryName, slug: catSlug },
+    });
+    const categoryId = category.id;
 
     // Generar variantes con las tallas
     const sizes = data.sizes
