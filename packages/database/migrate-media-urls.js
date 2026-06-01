@@ -14,11 +14,10 @@ async function migrate() {
   console.log('🔧 Actualizando URLs de imágenes...');
 
   // 1. Actualizar Product.images
-  const products = await prisma.product.findMany({
-    where: { images: { hasSome: [] } },
-  });
+  const products = await prisma.product.findMany();
 
   for (const product of products) {
+    if (!product.images) continue;
     const newImages = product.images.map((url) =>
       url.startsWith(oldDomain) ? url.replace(oldDomain, newDomain) : url,
     );
@@ -32,11 +31,10 @@ async function migrate() {
   }
 
   // 2. Actualizar TelegramImport.images
-  const imports = await prisma.telegramImport.findMany({
-    where: { images: { hasSome: [] } },
-  });
+  const imports = await prisma.telegramImport.findMany();
 
   for (const imp of imports) {
+    if (!imp.images) continue;
     const newImages = imp.images.map((url) =>
       url.startsWith(oldDomain) ? url.replace(oldDomain, newDomain) : url,
     );
@@ -65,11 +63,10 @@ async function migrate() {
   }
 
   // 4. Actualizar Review.images
-  const reviews = await prisma.review.findMany({
-    where: { images: { hasSome: [] } },
-  });
+  const reviews = await prisma.review.findMany();
 
   for (const review of reviews) {
+    if (!review.images) continue;
     const newImages = review.images.map((url) =>
       url.startsWith(oldDomain) ? url.replace(oldDomain, newDomain) : url,
     );
