@@ -22,6 +22,7 @@ services:
       - REDIS_PORT=6379
       - MINIO_ENDPOINT=minio
       - MINIO_PORT=9000
+      - MINIO_PUBLIC_URL=https://api.158.247.126.105.nip.io/media
       - API_URL=https://api.158.247.126.105.nip.io
       - WEB_URL=https://158.247.126.105.nip.io
       - ADMIN_URL=https://admin.158.247.126.105.nip.io
