@@ -4,12 +4,14 @@ import { ApiTags, ApiBearerAuth, ApiOperation, ApiConsumes } from '@nestjs/swagg
 import { Response } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { MediaService } from './media.service';
+import { Public } from '../../common/decorators';
 
 @ApiTags('media')
 @Controller('media')
 export class MediaController {
   constructor(private mediaService: MediaService) {}
 
+  @Public()
   @Get(':bucket/:path(*)')
   @ApiOperation({ summary: 'Servir archivo desde Minio (proxy público)' })
   async serveFile(
