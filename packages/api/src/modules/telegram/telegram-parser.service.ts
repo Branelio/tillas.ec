@@ -59,8 +59,8 @@ export class TelegramParserService {
       }
 
       // === Tallas ===
-      // Patrones: "Talla desde la 34 a la 44", "Tallas 35 - 43" (extrae el primer par de números tras 'Talla')
-      const sizeMatch = text.match(/Talla[^0-9]*(\d+)[^0-9]*(\d+)/i);
+      // Patrones: "Talla desde la 34 a la 44", "Del 33 al 44", "Tallas 35 - 43", "35 al 43"
+      const sizeMatch = text.match(/(?:talla|tallas|del|desde|rango)?\s*(\d{2})\s*(?:a\s*la|al|a|-|–)\s*(\d{2})/i);
       if (sizeMatch) {
         result.sizeMin = parseInt(sizeMatch[1], 10);
         result.sizeMax = parseInt(sizeMatch[2], 10);

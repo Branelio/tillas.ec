@@ -394,8 +394,13 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     const categoryId = category.id;
 
     // Generar variantes con las tallas
-    const sizes = data.sizes
+    let sizes = data.sizes
       || this.parser.generateSizeRange(imported.parsedSizeMin, imported.parsedSizeMax);
+
+    // Salvaguarda: Si no hay tallas detectadas ni enviadas, usar un rango estándar por defecto (35 a 43)
+    if (!sizes || sizes.length === 0) {
+      sizes = this.parser.generateSizeRange(35, 43);
+    }
 
     const variants = sizes.map((size, i) => ({
       size,
