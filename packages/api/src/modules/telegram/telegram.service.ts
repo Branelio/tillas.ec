@@ -359,6 +359,12 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     const imported = await this.prisma.telegramImport.findUnique({ where: { id } });
     if (!imported) throw new Error('Importación no encontrada');
 
+    // Asegurar que el precio sea de tipo numérico flotante
+    const sellPrice = parseFloat(data.sellPrice as any);
+    if (isNaN(sellPrice)) {
+      throw new Error('El precio de venta debe ser un número válido');
+    }
+
     // Generar slug del nombre
     const slug = data.productName
       .toLowerCase()
@@ -393,7 +399,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
 
     const variants = sizes.map((size, i) => ({
       size,
-      price: data.sellPrice,
+      price: sellPrice,
       stock: 10, // Stock por defecto
       sku: `${slug}-${size}-${Date.now()}-${i}`,
     }));
@@ -420,7 +426,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
         status: 'PRODUCT_CREATED',
         productId: product.id,
         productName: data.productName,
-        sellPrice: data.sellPrice,
+        sellPrice: sellPrice,
         brandName: data.brandName,
         categoryName: data.categoryName,
         reviewedAt: new Date(),
