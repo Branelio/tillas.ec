@@ -18,7 +18,7 @@ export class MediaController {
     @Param('bucket') bucket: string,
     @Param('path') path: string,
     @Res({ passthrough: true }) res: Response,
-  ) {
+  ): Promise<StreamableFile> {
     const filename = path;
     const { stream, stat } = await this.mediaService.getObjectStream(bucket, filename);
 
@@ -26,7 +26,7 @@ export class MediaController {
     res.setHeader('Content-Length', stat.size);
     res.setHeader('Cache-Control', 'public, max-age=31536000');
 
-    stream.pipe(res);
+    return new StreamableFile(stream);
   }
 
   @Post('upload')
