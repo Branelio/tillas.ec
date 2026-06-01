@@ -1,4 +1,4 @@
-import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as Minio from 'minio';
 
@@ -77,5 +77,16 @@ export class MediaService {
 
   async deleteImage(filename: string): Promise<void> {
     await this.minioClient.removeObject(this.bucket, filename);
+  }
+
+  async getObjectStream(bucket: string, filename: string): Promise<{ stream: any; stat: any }> {
+    try {
+      const stat = await this.minioClient.statObject(bucket, filename);
+      const stream = await this.minioClient.getObject(bucket, filename);
+      return { stream, stat };
+    } catch (error) {
+      this.logger.error(`Error obteniendo objeto ${bucket}/${filename}: ${error}`);
+      throw new NotFoundException('Archivo no encontrado');
+    }
   }
 }
